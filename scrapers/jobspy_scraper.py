@@ -72,6 +72,7 @@ def fetch_jobs(max_per_query: int = 20) -> list[dict]:
                         hours_old=72,
                         country_indeed=country_code,
                         linkedin_fetch_description=True,
+                        linkedin_fetch_description_timeout=10,
                     )
                     if df is None or df.empty:
                         continue
