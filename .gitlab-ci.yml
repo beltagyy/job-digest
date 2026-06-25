@@ -1,0 +1,92 @@
+stages:
+  - lint
+  - test
+  - security
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - .venv/
+
+before_script:
+  - python3 -m venv .venv
+  - source .venv/bin/activate
+  - pip install -r requirements.txt
+
+# ── Lint ──────────────────────────────────────────────────────────────────────
+
+flake8:
+  stage: lint
+  script:
+    - pip install flake8
+    - flake8 . --max-line-length=120 --exclude=.venv,__pycache__
+  allow_failure: false
+
+black:
+  stage: lint
+  script:
+    - pip install black
+    - black --check --line-length 120 .
+  allow_failure: true
+
+# ── Tests ─────────────────────────────────────────────────────────────────────
+
+pytest:
+  stage: test
+  script:
+    - pip install pytest pytest-mock pytest-cov
+    - pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=60
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    expire_in: 1 week
+
+# ── Security ──────────────────────────────────────────────────────────────────
+
+semgrep:
+  stage: security
+  image: semgrep/semgrep
+  script:
+    - semgrep scan --config=auto --error .
+  allow_failure: true
+
+bandit:
+  stage: security
+  script:
+    - pip install bandit
+    - bandit -r . -x .venv,tests -ll
+  allow_failure: true
+
+pip-audit:
+  stage: security
+  script:
+    - pip install pip-audit
+    - pip-audit -r requirements.txt
+  allow_failure: true
+
+detect-secrets:
+  stage: security
+  script:
+    - pip install detect-secrets
+    - detect-secrets scan --exclude-files '.venv/.*' > /tmp/secrets.json
+    - |
+      count=$(python3 -c "import json,sys; d=json.load(open('/tmp/secrets.json')); total=sum(len(v) for v in d.get('results',{}).values()); print(total)")
+      echo "Potential secrets found: $count"
+      if [ "$count" -gt "0" ]; then
+        cat /tmp/secrets.json
+        exit 1
+      fi
+  allow_failure: true
+
+safety:
+  stage: security
+  script:
+    - pip install safety
+    - safety check --full-report
+  allow_failure: true

@@ -371,6 +371,254 @@ LinkedIn sometimes rate-limits by IP. If running locally, try from a VPS with a 
 
 ---
 
+## CI/CD Pipeline & Security Checks
+
+The project includes a GitLab CI pipeline (`.gitlab-ci.yml`) with the following free stages:
+
+### Pipeline Stages
+
+```
+lint → test → security → build
+```
+
+### Create `.gitlab-ci.yml`
+
+Add this file to the root of the repo:
+
+```yaml
+stages:
+  - lint
+  - test
+  - security
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - .venv/
+
+before_script:
+  - python3 -m venv .venv
+  - source .venv/bin/activate
+  - pip install -r requirements.txt
+
+# ── Lint ─────────────────────────────────────────────────────────────────────
+
+flake8:
+  stage: lint
+  script:
+    - pip install flake8
+    - flake8 . --max-line-length=120 --exclude=.venv,__pycache__
+  allow_failure: false
+
+black:
+  stage: lint
+  script:
+    - pip install black
+    - black --check --line-length 120 .
+  allow_failure: true   # warn but don't block — formatting is advisory
+
+# ── Tests ─────────────────────────────────────────────────────────────────────
+
+pytest:
+  stage: test
+  script:
+    - pip install pytest pytest-mock pytest-cov
+    - pytest tests/ -v --cov=. --cov-report=term-missing --cov-fail-under=60
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
+# ── Security ──────────────────────────────────────────────────────────────────
+
+semgrep:
+  stage: security
+  image: semgrep/semgrep
+  script:
+    - semgrep scan --config=auto --error .
+  allow_failure: true
+
+bandit:
+  stage: security
+  script:
+    - pip install bandit
+    - bandit -r . -x .venv,tests -ll   # only medium+ severity
+  allow_failure: true
+
+pip-audit:
+  stage: security
+  script:
+    - pip install pip-audit
+    - pip-audit --require-hashes -r requirements.txt
+  allow_failure: true
+
+secret-detection:
+  stage: security
+  script:
+    - pip install detect-secrets
+    - detect-secrets scan --baseline .secrets.baseline
+  allow_failure: true
+
+safety:
+  stage: security
+  script:
+    - pip install safety
+    - safety check --full-report
+  allow_failure: true
+```
+
+### What Each Check Does
+
+| Tool | What it catches | Free? |
+|------|----------------|-------|
+| **flake8** | PEP8 style violations, undefined variables, unused imports | ✅ |
+| **black** | Code formatting consistency | ✅ |
+| **pytest + coverage** | Unit tests + enforces ≥60% coverage gate | ✅ |
+| **Semgrep** | SAST — insecure patterns, injection risks, hardcoded secrets | ✅ (free tier) |
+| **Bandit** | Python-specific security issues (subprocess injection, weak crypto, etc.) | ✅ |
+| **pip-audit** | Dependency CVE scanning (like Snyk but free) | ✅ |
+| **detect-secrets** | Prevents API keys/passwords from being committed | ✅ |
+| **Safety** | Known vulnerabilities in installed packages | ✅ |
+
+> **Semgrep** is the closest free equivalent to Checkmarx for Python. Run `semgrep scan --config=p/python --config=p/secrets .` locally for a deeper scan. Checkmarx and Veracode offer free community editions but require account registration.
+
+### Running Security Checks Locally
+
+```bash
+# Install all security tools
+pip install bandit semgrep pip-audit detect-secrets safety flake8 black
+
+# Run all checks in one go
+flake8 . --max-line-length=120 --exclude=.venv
+bandit -r . -x .venv,tests -ll
+pip-audit -r requirements.txt
+safety check
+semgrep scan --config=auto .
+
+# Scan for accidentally committed secrets
+detect-secrets scan > .secrets.baseline
+```
+
+---
+
+## 🗺️ Roadmap
+
+Features planned in order of priority:
+
+### ✅ Done
+- LinkedIn + Indeed scraping across 6 EU countries
+- LLM-powered CV matching (0–100% score)
+- Tailored 2-paragraph cover letter per job
+- Relocation/visa sponsorship detection
+- SQLite deduplication (30-day window)
+- HTML email digest via Resend
+- Cron scheduling on VPS
+
+---
+
+### 🔜 Planned Features
+
+#### 1. 🌐 Demo Website
+A static showcase page deployed on GitHub Pages or Vercel showing:
+- A live sample digest with real anonymized job data
+- "How it works" visual explainer (scrape → score → cover letter → email)
+- Customization guide
+- Link to repo + setup instructions
+
+No backend, no auth, zero cost. Goal: let anyone understand the project in 60 seconds without reading code.
+
+#### 2. ⚙️ Web Config Generator
+A simple web form where you fill in your CV summary, pick target countries and job titles, set your match threshold, and download a ready-to-use `config.py`. No setup knowledge required — makes the project accessible to non-developers who just want to run the bot for themselves.
+
+#### 3. 📱 Telegram / WhatsApp Notifications
+Send the digest as a Telegram message (via Bot API) in addition to or instead of email. Each job becomes a formatted message with inline "Apply" button. Useful for mobile-first users who live in their phone notifications. WhatsApp via Twilio sandbox is a stretch goal.
+
+#### 4. 🎯 Application Tracker
+Mark jobs as "Applied", "Interview", "Rejected", or "Ignored" directly from the email (via one-click links). Builds a local SQLite log of your application history. Never see a job you already applied to again. Generates a weekly stats summary: X applied, Y responses, Z% response rate.
+
+#### 5. 👥 Multi-User SaaS Mode
+Each user registers with email + CV profile. The bot runs on a shared schedule and delivers personalized digests to each user. Requires: FastAPI backend, PostgreSQL (replacing SQLite), per-user job queues, Stripe for billing (~€5/month per user). Only built if demand is proven by demo + config generator phases.
+
+#### 6. 🤖 Easy Apply Bot (Optional / Opt-in)
+For jobs marked "Easy Apply" on LinkedIn, an optional mode that auto-fills and submits the application using the generated cover letter. Strictly opt-in, rate-limited (max 5/day), runs with human-like delays. Carries ToS risk — users acknowledge this explicitly before enabling.
+
+---
+
+## 🤝 How to Contribute
+
+Contributions are welcome — whether it's a bug fix, a new job board scraper, a better prompt, or a new feature from the roadmap.
+
+### Getting Started
+
+1. **Fork the repo** on GitLab
+2. **Clone your fork**
+   ```bash
+   git clone https://gitlab.com/YOUR_USERNAME/job-digest.git
+   cd job-digest
+   ```
+3. **Create a feature branch**
+   ```bash
+   git checkout -b feat/your-feature-name
+   ```
+4. **Set up your dev environment**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   pip install flake8 black bandit pytest pytest-mock
+   ```
+5. **Make your changes**
+
+6. **Run tests and checks before pushing**
+   ```bash
+   python -m pytest tests/ -v
+   flake8 . --max-line-length=120 --exclude=.venv
+   bandit -r . -x .venv,tests -ll
+   ```
+
+7. **Commit with a clear message**
+   ```bash
+   git commit -m "feat: add Indeed salary filter support"
+   # Use: feat / fix / docs / refactor / test / chore
+   ```
+
+8. **Open a Merge Request** against `main`
+
+### Contribution Guidelines
+
+- **One feature per MR** — keep changes focused and reviewable
+- **Tests required** — add or update tests for any new logic in `scrapers/`, `matching/`, `storage/`, or `email_digest/`
+- **No secrets in code** — all credentials go in `.env`, never hardcoded
+- **Match existing style** — the codebase uses type hints, docstrings on public functions, and f-strings
+- **Update `config.py` comments** if you add a new tunable
+
+### Good First Issues
+
+| Area | Task |
+|------|------|
+| Scrapers | Add a new job board (StepStone, EuroEngineerJobs, Relocate.me) |
+| Matching | Improve the scoring prompt — test with diverse job types |
+| Email | Add a plain-text fallback version of the digest |
+| Config | Add salary range filter support |
+| Docs | Translate setup guide to German, Dutch, or Arabic |
+| Tests | Increase test coverage above 80% |
+| CI | Add GitHub Actions equivalent of the GitLab CI pipeline |
+
+### Reporting Issues
+
+Open a GitLab issue with:
+- Python version (`python3 --version`)
+- OS and VPS/cloud provider
+- The exact error message and full stack trace
+- What you were running (`python run.py --dry-run`, etc.)
+
+---
+
 ## License
 
 MIT — use it, fork it, make it your own.
