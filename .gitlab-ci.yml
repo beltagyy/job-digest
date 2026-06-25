@@ -3,7 +3,6 @@ stages:
   - test
   - security
 
-# Default image for all jobs unless overridden
 default:
   image: python:3.12-slim
 
@@ -56,6 +55,7 @@ pytest:
 semgrep:
   stage: security
   image: semgrep/semgrep
+  before_script: []
   script:
     - semgrep scan --config=auto --error .
   allow_failure: true
@@ -78,16 +78,8 @@ detect-secrets:
   stage: security
   script:
     - pip install detect-secrets
-    - detect-secrets scan --exclude-files '.venv/.*' --exclude-files '.git/.*' > /tmp/secrets.json
-    - python3 -c "
-import json, sys
-d = json.load(open('/tmp/secrets.json'))
-total = sum(len(v) for v in d.get('results', {}).values())
-print(f'Potential secrets found: {total}')
-if total > 0:
-    print(json.dumps(d, indent=2))
-    sys.exit(1)
-"
+    - detect-secrets scan --exclude-files ".venv/.*" --exclude-files ".git/.*" > /tmp/secrets.json
+    - python3 scripts/check_secrets.py
   allow_failure: true
 
 safety:
