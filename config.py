@@ -6,20 +6,47 @@ Edit this file to change search targets, scoring weights, or filters.
 
 # Job search keywords
 SEARCH_TERMS = [
+    # Cloud Security — core target
     "Senior Cloud Security Engineer",
+    "Cloud Security Engineer",
+    "Cloud Security Architect",
+    # DevSecOps / Platform Security
     "DevSecOps Engineer",
+    "Platform Security Engineer",
+    "Infrastructure Security Engineer",
+    # Kubernetes / Container
     "Kubernetes Security",
+    "Security Engineer Kubernetes",
+    "Container Security Engineer",
+    # Cloud Infrastructure (broader — catches hybrid roles)
+    "Cloud Infrastructure Engineer",
+    "Senior Cloud Engineer Security",
+    "AWS Security Engineer",
+    "Azure Security Engineer",
+    # SRE / Platform with security angle
+    "Site Reliability Engineer Security",
+    "Platform Engineer DevSecOps",
 ]
 
 # Target countries & cities
 # Each entry: (country_code_for_jobspy, display_name, city_list)
 SEARCH_LOCATIONS = [
-    ("germany",        "Germany",        ["Germany", "Berlin", "Munich", "Frankfurt", "Hamburg"]),
-    ("netherlands",    "Netherlands",    ["Netherlands", "Amsterdam", "Rotterdam", "The Hague"]),
-    ("czech republic", "Czech Republic", ["Czech Republic", "Prague"]),
-    ("hungary",        "Hungary",        ["Hungary", "Budapest"]),
-    ("austria",        "Austria",        ["Austria", "Vienna"]),
-    ("ireland",        "Ireland",        ["Ireland", "Dublin"]),
+    # Tier 1 — primary targets (highest job density, strong relocation culture)
+    ("germany",        "Germany",        ["Berlin", "Munich", "Frankfurt", "Hamburg", "Stuttgart"]),
+    ("netherlands",    "Netherlands",    ["Amsterdam", "Rotterdam", "The Hague", "Eindhoven"]),
+    ("ireland",        "Ireland",        ["Dublin", "Cork", "Galway"]),
+    ("switzerland",    "Switzerland",    ["Zurich", "Basel", "Geneva"]),
+    ("belgium",        "Belgium",        ["Brussels", "Antwerp", "Ghent"]),
+    # Tier 2 — growing tech hubs, lower cost, active relocation support
+    ("czech republic", "Czech Republic", ["Prague", "Brno"]),
+    ("poland",         "Poland",         ["Warsaw", "Krakow", "Wroclaw", "Gdansk"]),
+    ("austria",        "Austria",        ["Vienna", "Graz", "Linz"]),
+    ("spain",          "Spain",          ["Barcelona", "Madrid", "Valencia"]),
+    ("estonia",        "Estonia",        ["Tallinn", "Tartu"]),
+    # Tier 3 — emerging, worth monitoring
+    ("hungary",        "Hungary",        ["Budapest"]),
+    ("croatia",        "Croatia",        ["Zagreb", "Split"]),
+    ("bulgaria",       "Bulgaria",       ["Sofia", "Plovdiv"]),
 ]
 
 # Jobs scoring below this (0-100) are excluded from the digest entirely

@@ -1,7 +1,12 @@
 # scrapers/jobspy_scraper.py
 """
-Scrapes LinkedIn, Indeed, and Glassdoor using the JobSpy library.
+Scrapes LinkedIn and Indeed using the JobSpy library.
 Returns a list of normalized job dicts ready for scoring.
+
+Strategy:
+- Tier 1 countries (DE, NL, IE, CH, BE): 2 cities × all terms
+- Tier 2 countries (CZ, PL, AT, ES, EE): 1 city × all terms
+- Tier 3 countries (HU, HR, BG): 1 city × top 3 terms only
 """
 import hashlib
 import logging
@@ -10,14 +15,18 @@ from config import SEARCH_TERMS, SEARCH_LOCATIONS
 
 logger = logging.getLogger(__name__)
 
+# Tier 1 — search 2 cities, all terms (highest job density)
+TIER_1 = {"germany", "netherlands", "ireland", "switzerland", "belgium"}
+
+# Tier 3 — search 1 city, top 3 terms only (emerging markets)
+TIER_3 = {"hungary", "croatia", "bulgaria"}
+
 
 def _make_id(site: str, url: str) -> str:
-    """Stable unique ID from site + URL so dedup works across runs."""
     return hashlib.md5(f"{site}:{url}".encode()).hexdigest()
 
 
 def _normalize(row: dict, country_code: str, country_display: str) -> dict:
-    """Convert a JobSpy DataFrame row into our internal job dict schema."""
     url = str(row.get("job_url", ""))
     return {
         "id":           _make_id(str(row.get("site", "")), url),
@@ -34,17 +43,29 @@ def _normalize(row: dict, country_code: str, country_display: str) -> dict:
     }
 
 
-def fetch_jobs(max_per_query: int = 25) -> list[dict]:
+def fetch_jobs(max_per_query: int = 20) -> list[dict]:
     """
-    Run JobSpy for every combination of search term x location.
+    Scrape jobs across all configured locations using tiered strategy.
     Returns deduplicated list of normalized job dicts.
     """
     seen_urls: set[str] = set()
     all_jobs: list[dict] = []
 
-    for term in SEARCH_TERMS:
-        for country_code, country_display, cities in SEARCH_LOCATIONS:
-            for city in cities[:1]:  # 1 city per country — fastest reliable results
+    for country_code, country_display, cities in SEARCH_LOCATIONS:
+
+        # Determine tier settings
+        if country_code in TIER_1:
+            city_limit = 2
+            terms = SEARCH_TERMS
+        elif country_code in TIER_3:
+            city_limit = 1
+            terms = SEARCH_TERMS[:3]   # top 3 terms only for Tier 3
+        else:
+            city_limit = 1
+            terms = SEARCH_TERMS
+
+        for term in terms:
+            for city in cities[:city_limit]:
                 try:
                     logger.info(f"Scraping: '{term}' in {city} ({country_code})")
                     df = scrape_jobs(
@@ -52,7 +73,7 @@ def fetch_jobs(max_per_query: int = 25) -> list[dict]:
                         search_term=term,
                         location=city,
                         results_wanted=max_per_query,
-                        hours_old=72,  # last 3 days — we run every 2 days
+                        hours_old=72,
                         country_indeed=country_code,
                         linkedin_fetch_description=True,
                     )
