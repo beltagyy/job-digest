@@ -391,6 +391,9 @@ stages:
   - test
   - security
 
+default:
+  image: python:3.12-slim   # explicit Python image — avoids ruby/default runner issues
+
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 

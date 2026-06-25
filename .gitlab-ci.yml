@@ -3,6 +3,10 @@ stages:
   - test
   - security
 
+# Default image for all jobs unless overridden
+default:
+  image: python:3.12-slim
+
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
@@ -74,14 +78,16 @@ detect-secrets:
   stage: security
   script:
     - pip install detect-secrets
-    - detect-secrets scan --exclude-files '.venv/.*' > /tmp/secrets.json
-    - |
-      count=$(python3 -c "import json,sys; d=json.load(open('/tmp/secrets.json')); total=sum(len(v) for v in d.get('results',{}).values()); print(total)")
-      echo "Potential secrets found: $count"
-      if [ "$count" -gt "0" ]; then
-        cat /tmp/secrets.json
-        exit 1
-      fi
+    - detect-secrets scan --exclude-files '.venv/.*' --exclude-files '.git/.*' > /tmp/secrets.json
+    - python3 -c "
+import json, sys
+d = json.load(open('/tmp/secrets.json'))
+total = sum(len(v) for v in d.get('results', {}).values())
+print(f'Potential secrets found: {total}')
+if total > 0:
+    print(json.dumps(d, indent=2))
+    sys.exit(1)
+"
   allow_failure: true
 
 safety:
