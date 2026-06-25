@@ -87,11 +87,16 @@ def test_score_job_handles_api_error(cloud_security_job):
 
 
 def test_enrich_jobs_filters_low_scores(cloud_security_job, unrelated_job):
-    high = _mock_completion(json.dumps({"score": 90, "reasons": ["great match"], "missing": []}))
-    low  = _mock_completion(json.dumps({"score": 20, "reasons": ["poor match"], "missing": ["everything"]}))
+    # job1 scores 90 → passes → gets cover letter call
+    # job2 scores 20 → filtered out → no cover letter call
+    responses = [
+        _mock_completion(json.dumps({"score": 90, "reasons": ["great match"], "missing": []})),
+        _mock_completion("Cover letter for cloud security job"),
+        _mock_completion(json.dumps({"score": 20, "reasons": ["poor match"], "missing": ["everything"]})),
+    ]
 
     with patch("matching.scorer._get_client") as mock_client:
-        mock_client.return_value.chat.completions.create.side_effect = [high, low]
+        mock_client.return_value.chat.completions.create.side_effect = responses
         result = enrich_jobs([cloud_security_job, unrelated_job])
 
     assert len(result) == 1
@@ -100,14 +105,18 @@ def test_enrich_jobs_filters_low_scores(cloud_security_job, unrelated_job):
 
 
 def test_enrich_jobs_sorted_by_score(cloud_security_job, unrelated_job):
-    high = _mock_completion(json.dumps({"score": 85, "reasons": ["strong"], "missing": []}))
-    mid  = _mock_completion(json.dumps({"score": 72, "reasons": ["decent"], "missing": []}))
-    # cover letter calls (2 jobs pass threshold)
-    cl1  = _mock_completion("Cover letter for job 1")
-    cl2  = _mock_completion("Cover letter for job 2")
+    # score job1=85, cover letter job1, score job2=72, cover letter job2
+    # (enrich_jobs scores then immediately generates cover letter per job)
+    responses = [
+        _mock_completion(json.dumps({"score": 85, "reasons": ["strong"], "missing": []})),
+        _mock_completion("Cover letter for job 1"),
+        _mock_completion(json.dumps({"score": 72, "reasons": ["decent"], "missing": []})),
+        _mock_completion("Cover letter for job 2"),
+    ]
 
     with patch("matching.scorer._get_client") as mock_client:
-        mock_client.return_value.chat.completions.create.side_effect = [high, mid, cl1, cl2]
+        mock_client.return_value.chat.completions.create.side_effect = responses
         result = enrich_jobs([cloud_security_job, unrelated_job])
 
+    assert len(result) == 2
     assert result[0]["score"] >= result[1]["score"]

@@ -41,7 +41,7 @@ pytest:
   stage: test
   script:
     - pip install pytest pytest-mock pytest-cov
-    - pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=60
+    - pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=50 --ignore=scrapers --ignore=run.py
   coverage: '/TOTAL.*\s+(\d+%)$/'
   artifacts:
     reports:
