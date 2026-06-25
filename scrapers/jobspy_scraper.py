@@ -44,11 +44,11 @@ def fetch_jobs(max_per_query: int = 25) -> list[dict]:
 
     for term in SEARCH_TERMS:
         for country_code, country_display, cities in SEARCH_LOCATIONS:
-            for city in cities[:2]:  # top 2 cities per country to limit API load
+            for city in cities[:1]:  # 1 city per country — fastest reliable results
                 try:
                     logger.info(f"Scraping: '{term}' in {city} ({country_code})")
                     df = scrape_jobs(
-                        site_name=["linkedin", "indeed", "glassdoor"],
+                        site_name=["linkedin", "indeed"],
                         search_term=term,
                         location=city,
                         results_wanted=max_per_query,

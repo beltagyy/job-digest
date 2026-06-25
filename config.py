@@ -6,12 +6,9 @@ Edit this file to change search targets, scoring weights, or filters.
 
 # Job search keywords
 SEARCH_TERMS = [
-    "Cloud Security Engineer",
     "Senior Cloud Security Engineer",
     "DevSecOps Engineer",
-    "Platform Security Engineer",
-    "Kubernetes Security Engineer",
-    "Cloud Infrastructure Security",
+    "Kubernetes Security",
 ]
 
 # Target countries & cities
