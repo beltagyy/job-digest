@@ -11,10 +11,19 @@ from config import CV_PROFILE, RELOCATION_KEYWORDS, MIN_SCORE_TO_INCLUDE
 
 logger = logging.getLogger(__name__)
 
-client = OpenAI(
-    api_key=os.environ["AZURE_AI_API_KEY"],
-    base_url=os.environ["AZURE_AI_ENDPOINT"].rstrip("/") + "/openai/v1/",
-)
+# Lazy client — initialized on first use so imports don't require env vars
+_client = None
+
+
+def _get_client() -> OpenAI:
+    global _client
+    if _client is None:
+        _client = OpenAI(
+            api_key=os.environ["AZURE_AI_API_KEY"],
+            base_url=os.environ["AZURE_AI_ENDPOINT"].rstrip("/") + "/openai/v1/",
+        )
+    return _client
+
 
 MODEL = os.environ.get("AZURE_AI_MODEL", "DeepSeek-V3.2")
 
@@ -79,7 +88,7 @@ def score_job(job: dict) -> dict:
         description=job.get("description", "")[:3000],
     )
     try:
-        response = client.chat.completions.create(
+        response = _get_client().chat.completions.create(
             model=MODEL,
             max_tokens=256,
             temperature=0.1,
@@ -109,7 +118,7 @@ def generate_cover_letter(job: dict) -> str:
         description=job.get("description", "")[:2000],
     )
     try:
-        response = client.chat.completions.create(
+        response = _get_client().chat.completions.create(
             model=MODEL,
             max_tokens=300,
             temperature=0.7,

@@ -11,6 +11,7 @@ def cloud_security_job():
         "id": "abc123",
         "title": "Senior Cloud Security Engineer",
         "company": "SAP",
+        "location": "Berlin, Germany",
         "description": (
             "We need a Senior Cloud Security Engineer with deep AWS, Kubernetes EKS, "
             "Falco, Wiz CNAPP, and Terraform experience. DevSecOps background required. "
@@ -26,9 +27,19 @@ def unrelated_job():
         "id": "def456",
         "title": "Java Spring Boot Developer",
         "company": "Random Corp",
+        "location": "Amsterdam, Netherlands",
         "description": "Looking for Java developer with Spring Boot experience. No cloud needed.",
         "country": "Netherlands",
     }
+
+
+def _mock_completion(content: str) -> MagicMock:
+    """Build a mock OpenAI chat completion response."""
+    choice = MagicMock()
+    choice.message.content = content
+    response = MagicMock()
+    response.choices = [choice]
+    return response
 
 
 def test_detect_relocation_positive(cloud_security_job):
@@ -40,26 +51,63 @@ def test_detect_relocation_negative(unrelated_job):
 
 
 def test_score_job_returns_valid_structure(cloud_security_job):
-    mock_response = MagicMock()
-    mock_response.content = [MagicMock(text=json.dumps({
+    mock_resp = _mock_completion(json.dumps({
         "score": 88,
         "reasons": ["Matches Kubernetes security", "AWS experience", "Wiz CNAPP mentioned"],
         "missing": ["No SPIFFE/SPIRE mention"],
-    }))]
-    with patch("matching.scorer.anthropic_client.messages.create", return_value=mock_response):
+    }))
+    with patch("matching.scorer._get_client") as mock_client:
+        mock_client.return_value.chat.completions.create.return_value = mock_resp
         result = score_job(cloud_security_job)
+
     assert "score" in result
     assert "reasons" in result
     assert "missing" in result
     assert 0 <= result["score"] <= 100
+    assert isinstance(result["reasons"], list)
+
+
+def test_score_job_handles_invalid_json(cloud_security_job):
+    mock_resp = _mock_completion("not valid json at all")
+    with patch("matching.scorer._get_client") as mock_client:
+        mock_client.return_value.chat.completions.create.return_value = mock_resp
+        result = score_job(cloud_security_job)
+
+    assert result["score"] == 0
+    assert "parse error" in result["missing"]
+
+
+def test_score_job_handles_api_error(cloud_security_job):
+    with patch("matching.scorer._get_client") as mock_client:
+        mock_client.return_value.chat.completions.create.side_effect = Exception("API down")
+        result = score_job(cloud_security_job)
+
+    assert result["score"] == 0
+    assert "api error" in result["missing"]
 
 
 def test_enrich_jobs_filters_low_scores(cloud_security_job, unrelated_job):
-    mock_high = MagicMock()
-    mock_high.content = [MagicMock(text=json.dumps({"score": 90, "reasons": ["great"], "missing": []}))]
-    mock_low = MagicMock()
-    mock_low.content = [MagicMock(text=json.dumps({"score": 20, "reasons": ["poor"], "missing": ["everything"]}))]
-    with patch("matching.scorer.anthropic_client.messages.create", side_effect=[mock_high, mock_low]):
+    high = _mock_completion(json.dumps({"score": 90, "reasons": ["great match"], "missing": []}))
+    low  = _mock_completion(json.dumps({"score": 20, "reasons": ["poor match"], "missing": ["everything"]}))
+
+    with patch("matching.scorer._get_client") as mock_client:
+        mock_client.return_value.chat.completions.create.side_effect = [high, low]
         result = enrich_jobs([cloud_security_job, unrelated_job])
+
     assert len(result) == 1
     assert result[0]["id"] == "abc123"
+    assert result[0]["score"] == 90
+
+
+def test_enrich_jobs_sorted_by_score(cloud_security_job, unrelated_job):
+    high = _mock_completion(json.dumps({"score": 85, "reasons": ["strong"], "missing": []}))
+    mid  = _mock_completion(json.dumps({"score": 72, "reasons": ["decent"], "missing": []}))
+    # cover letter calls (2 jobs pass threshold)
+    cl1  = _mock_completion("Cover letter for job 1")
+    cl2  = _mock_completion("Cover letter for job 2")
+
+    with patch("matching.scorer._get_client") as mock_client:
+        mock_client.return_value.chat.completions.create.side_effect = [high, mid, cl1, cl2]
+        result = enrich_jobs([cloud_security_job, unrelated_job])
+
+    assert result[0]["score"] >= result[1]["score"]
