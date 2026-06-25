@@ -9,6 +9,32 @@ import logging
 from openai import OpenAI
 from config import CV_PROFILE, RELOCATION_KEYWORDS, MIN_SCORE_TO_INCLUDE, KNOWN_RELOCATORS
 
+# Title must contain at least one of these to be worth scoring
+TITLE_MUST_INCLUDE = {
+    "cloud", "security", "devops", "devsecops", "platform", "kubernetes",
+    "k8s", "sre", "reliability", "infrastructure", "infra", "architect",
+    "engineer", "devops", "automation", "aws", "azure", "gcp",
+}
+
+# If title contains any of these it's immediately discarded (junk filter)
+TITLE_JUNK = {
+    "junior", "intern", "internship", "trainee", "werkstudent", "praktikant",
+    "sales", "account executive", "marketing", "hr ", "human resources",
+    "recruiter", "finance", "legal", "copywriter", "designer", "product manager",
+    "scrum master", "project manager", "it-workplace", "workplace engineer",
+    "support engineer", "helpdesk", "1st line", "2nd line",
+}
+
+
+def is_relevant_title(job: dict) -> bool:
+    """Quick pre-filter — avoids burning AI tokens on obvious junk."""
+    title = job.get("title", "").lower()
+    # Reject if junk keyword found
+    if any(junk in title for junk in TITLE_JUNK):
+        return False
+    # Accept if at least one relevant keyword found
+    return any(kw in title for kw in TITLE_MUST_INCLUDE)
+
 logger = logging.getLogger(__name__)
 
 # Lazy client — initialized on first use so imports don't require env vars
@@ -141,9 +167,15 @@ def enrich_jobs(jobs: list[dict]) -> list[dict]:
     Score all jobs, filter below threshold, generate cover letters for passing jobs.
     Returns list sorted by score descending.
     """
+    # Pre-filter junk titles before hitting the AI
+    relevant = [j for j in jobs if is_relevant_title(j)]
+    skipped = len(jobs) - len(relevant)
+    if skipped:
+        logger.info(f"Pre-filter: skipped {skipped} irrelevant titles, scoring {len(relevant)}/{len(jobs)}")
+
     enriched = []
-    for i, job in enumerate(jobs):
-        logger.info(f"Scoring {i+1}/{len(jobs)}: {job.get('title')} @ {job.get('company')}")
+    for i, job in enumerate(relevant):
+        logger.info(f"Scoring {i+1}/{len(relevant)}: {job.get('title')} @ {job.get('company')}")
         result = score_job(job)
         score = result.get("score", 0)
 

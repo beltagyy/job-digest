@@ -11,8 +11,24 @@ Tiers:
 """
 import hashlib
 import logging
+import signal
+from contextlib import contextmanager
 from jobspy import scrape_jobs
 from config import SEARCH_TERMS, SEARCH_LOCATIONS
+
+
+@contextmanager
+def timeout(seconds):
+    """Context manager that raises TimeoutError after `seconds`."""
+    def _handler(signum, frame):
+        raise TimeoutError(f"Query timed out after {seconds}s")
+    old = signal.signal(signal.SIGALRM, _handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old)
 
 logger = logging.getLogger(__name__)
 
@@ -64,14 +80,15 @@ def fetch_jobs(max_per_query: int = 20) -> list[dict]:
             for city in cities[:city_limit]:
                 try:
                     logger.info(f"Scraping: '{term}' in {city} ({country_code})")
-                    df = scrape_jobs(
+                    with timeout(90):  # 90s max per query — prevents silent hangs
+                      df = scrape_jobs(
                         site_name=["linkedin", "indeed"],
                         search_term=term,
                         location=city,
                         results_wanted=max_per_query,
-                        hours_old=72,
+                        hours_old=48,  # matches 2-day cron cadence exactly
                         country_indeed=country_code,
-                        linkedin_fetch_description=False,  # disabled — causes silent hangs
+                        linkedin_fetch_description=True,   # re-enabled with per-job timeout below
                     )
                     if df is None or df.empty:
                         continue
@@ -82,6 +99,9 @@ def fetch_jobs(max_per_query: int = 20) -> list[dict]:
                             all_jobs.append(
                                 _normalize(row.to_dict(), country_code, country_display)
                             )
+                except TimeoutError as e:
+                    logger.warning(f"Query timed out for '{term}' in {city} — skipping")
+                    continue
                 except Exception as e:
                     logger.warning(f"JobSpy error for '{term}' in {city}: {e}")
                     continue
