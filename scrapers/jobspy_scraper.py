@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 TIER_1 = {"germany", "netherlands", "ireland", "switzerland", "belgium"}
 TIER_3 = {"hungary", "croatia", "bulgaria"}
+# Tier 1 = 3 cities × all terms
+# Tier 2 = 1 city × all terms
+# Tier 3 = 1 city × all terms (no term restriction)
 
 
 def _make_id(site: str, url: str) -> str:
@@ -51,13 +54,10 @@ def fetch_jobs(max_per_query: int = 20) -> list[dict]:
 
     for country_code, country_display, cities in SEARCH_LOCATIONS:
         if country_code in TIER_1:
-            city_limit = 2
+            city_limit = 3        # 3 cities × all terms
             terms = SEARCH_TERMS
-        elif country_code in TIER_3:
-            city_limit = 1
-            terms = SEARCH_TERMS[:5]
         else:
-            city_limit = 1
+            city_limit = 1        # 1 city × all terms (Tier 2 and Tier 3)
             terms = SEARCH_TERMS
 
         for term in terms:
