@@ -7,7 +7,7 @@ import os
 import json
 import logging
 from openai import OpenAI
-from config import CV_PROFILE, RELOCATION_KEYWORDS, MIN_SCORE_TO_INCLUDE
+from config import CV_PROFILE, RELOCATION_KEYWORDS, MIN_SCORE_TO_INCLUDE, KNOWN_RELOCATORS
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +76,12 @@ def detect_relocation(job: dict) -> bool:
     """Check if job description or title mentions relocation/visa support."""
     text = (job.get("description", "") + " " + job.get("title", "")).lower()
     return any(kw in text for kw in RELOCATION_KEYWORDS)
+
+
+def detect_known_relocator(job: dict) -> bool:
+    """Check if company is on the known-relocator list (visa/relocation track record)."""
+    company = job.get("company", "").lower()
+    return any(name in company for name in KNOWN_RELOCATORS)
 
 
 def score_job(job: dict) -> dict:
@@ -150,11 +156,12 @@ def enrich_jobs(jobs: list[dict]) -> list[dict]:
 
         enriched.append({
             **job,
-            "score":        score,
-            "reasons":      result.get("reasons", []),
-            "missing":      result.get("missing", []),
-            "relocation":   detect_relocation(job),
-            "cover_letter": cover_letter,
+            "score":           score,
+            "reasons":         result.get("reasons", []),
+            "missing":         result.get("missing", []),
+            "relocation":      detect_relocation(job),
+            "known_relocator": detect_known_relocator(job),
+            "cover_letter":    cover_letter,
         })
 
     enriched.sort(key=lambda j: j["score"], reverse=True)

@@ -44,24 +44,30 @@ SEARCH_TERMS = [
     "Platform Engineer",
 ]
 
-# Big tech + scale-ups known for strong relocation packages
-# Appended to SEARCH_TERMS as "role at company" queries for targeted search
-COMPANY_TARGETS = [
+# Companies known to actively sponsor visas and support relocation to EU.
+# Used ONLY to add a "⭐ Known Relocator" badge in the email digest —
+# NOT used to filter out other companies. Any company can still appear
+# and get a high score if it matches your CV well.
+KNOWN_RELOCATORS = {
     # Big Tech
-    "Amazon Web Services", "AWS", "Google", "Microsoft", "Meta",
-    "Apple", "Salesforce", "Oracle", "IBM", "SAP",
-    # Fintech / Scale-ups with strong relocation
-    "Adyen", "Bolt", "Wise", "Revolut", "N26", "Monzo",
-    "Stripe", "Klarna", "SumUp", "Mollie", "Checkout.com",
-    # eBay / Marketplaces
-    "eBay", "Zalando", "Booking.com", "Delivery Hero",
-    # Cloud / Infra companies
-    "Cloudflare", "HashiCorp", "Datadog", "Dynatrace",
-    "CrowdStrike", "Palo Alto Networks", "Wiz",
-    # German / EU tech
-    "Siemens", "Bosch", "Deutsche Telekom", "Telefonica",
-    "Criteo", "OVHcloud", "TeamViewer",
-]
+    "amazon", "aws", "google", "microsoft", "meta", "apple",
+    "salesforce", "oracle", "ibm", "sap",
+    # Fintech scale-ups
+    "adyen", "bolt", "wise", "revolut", "n26", "monzo",
+    "stripe", "klarna", "sumup", "mollie", "checkout.com",
+    # Marketplaces / Consumer
+    "ebay", "zalando", "booking.com", "booking", "delivery hero",
+    "trivago", "hellofresh",
+    # Cloud / Infra / Security
+    "cloudflare", "hashicorp", "datadog", "dynatrace",
+    "crowdstrike", "palo alto", "wiz", "snyk", "elastic",
+    # EU Tech
+    "siemens", "bosch", "deutsche telekom", "telefonica",
+    "criteo", "ovhcloud", "teamviewer", "personio", "celonis",
+    # Other known EU relocators
+    "spotify", "skyscanner", "transferwise", "messagebird",
+    "contentful", "signavio", "sennder",
+}
 
 # Target countries & cities
 # Each entry: (country_code_for_jobspy, display_name, city_list)

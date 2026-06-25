@@ -75,7 +75,8 @@
       </div>
 
       <div class="badges">
-        {% if job.relocation %}<span class="badge badge-relocation">✅ Relocation</span>{% endif %}
+        {% if job.known_relocator %}<span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;">⭐ Known Relocator</span>{% endif %}
+        {% if job.relocation %}<span class="badge badge-relocation">✅ Relocation Mentioned</span>{% endif %}
         {% if job.is_remote %}<span class="badge badge-remote">🌐 Remote</span>{% endif %}
         <span class="badge badge-source">{{ job.source }}</span>
       </div>
