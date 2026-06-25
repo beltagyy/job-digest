@@ -1,21 +1,20 @@
 # matching/scorer.py
 """
-Uses DeepSeek-V3 (via Azure AI Foundry) to score each job against Mohamed's CV profile.
+Uses DeepSeek-V3 (via Azure AI Foundry serverless endpoint) to score each job.
 Returns enriched job dicts with score (0-100), match reasons, and missing skills.
 """
 import os
 import json
 import logging
-from openai import AzureOpenAI
+from openai import OpenAI
 from config import CV_PROFILE, RELOCATION_KEYWORDS, MIN_SCORE_TO_INCLUDE
 
 logger = logging.getLogger(__name__)
 
-# Azure AI Foundry client — uses OpenAI-compatible API
-client = AzureOpenAI(
+# Azure AI Foundry serverless endpoint — uses standard OpenAI-compatible API
+client = OpenAI(
     api_key=os.environ["AZURE_AI_API_KEY"],
-    azure_endpoint=os.environ["AZURE_AI_ENDPOINT"],
-    api_version="2024-12-01-preview",
+    base_url=os.environ["AZURE_AI_ENDPOINT"].rstrip("/") + "/openai/v1/",
 )
 
 MODEL = os.environ.get("AZURE_AI_MODEL", "DeepSeek-V3")
@@ -35,12 +34,12 @@ Return ONLY a valid JSON object (no markdown, no explanation) in this exact form
 {{"score": <integer 0-100>, "reasons": ["reason1", "reason2", "reason3"], "missing": ["gap1", "gap2"]}}
 
 Scoring guide:
-- 85-100: Near-perfect match, candidate has almost all required skills
-- 70-84: Strong match, 1-2 gaps but mostly aligned
+- 85-100: Near-perfect match
+- 70-84: Strong match, 1-2 gaps
 - 55-69: Decent match, worth considering
-- 0-54: Poor match, significant skill or seniority mismatch
+- 0-54: Poor match
 
-Be concise - max 3 reasons and 2 missing items. Focus on technical skills, seniority, and domain fit."""
+Be concise - max 3 reasons and 2 missing items."""
 
 
 def detect_relocation(job: dict) -> bool:
@@ -50,11 +49,7 @@ def detect_relocation(job: dict) -> bool:
 
 
 def score_job(job: dict) -> dict:
-    """
-    Call DeepSeek via Azure to score one job against CV_PROFILE.
-    Returns dict with keys: score, reasons, missing.
-    Falls back to score=0 on any API error.
-    """
+    """Call DeepSeek via Azure to score one job. Falls back to score=0 on error."""
     prompt = SCORE_PROMPT.format(
         cv_profile=CV_PROFILE,
         title=job.get("title", ""),
@@ -70,7 +65,7 @@ def score_job(job: dict) -> dict:
             messages=[{"role": "user", "content": prompt}],
         )
         raw = response.choices[0].message.content.strip()
-        # Strip markdown code fences if model adds them
+        # Strip markdown fences if model adds them
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
@@ -85,19 +80,14 @@ def score_job(job: dict) -> dict:
 
 
 def enrich_jobs(jobs: list[dict]) -> list[dict]:
-    """
-    Score all jobs, attach results to each job dict, filter below threshold.
-    Returns list sorted by score descending.
-    """
+    """Score all jobs, filter below threshold, return sorted by score desc."""
     enriched = []
     for i, job in enumerate(jobs):
-        logger.info(f"Scoring job {i+1}/{len(jobs)}: {job.get('title')} @ {job.get('company')}")
+        logger.info(f"Scoring {i+1}/{len(jobs)}: {job.get('title')} @ {job.get('company')}")
         result = score_job(job)
         score = result.get("score", 0)
-
         if score < MIN_SCORE_TO_INCLUDE:
             continue
-
         enriched.append({
             **job,
             "score":      score,
@@ -107,5 +97,5 @@ def enrich_jobs(jobs: list[dict]) -> list[dict]:
         })
 
     enriched.sort(key=lambda j: j["score"], reverse=True)
-    logger.info(f"Scoring done: {len(enriched)}/{len(jobs)} jobs passed threshold")
+    logger.info(f"Scoring done: {len(enriched)}/{len(jobs)} passed threshold")
     return enriched
