@@ -17,12 +17,12 @@ SEARCH_TERMS = [
 # Target countries & cities
 # Each entry: (country_code_for_jobspy, display_name, city_list)
 SEARCH_LOCATIONS = [
-    ("DE", "Germany",        ["Germany", "Berlin", "Munich", "Frankfurt", "Hamburg"]),
-    ("NL", "Netherlands",    ["Netherlands", "Amsterdam", "Rotterdam", "The Hague"]),
-    ("CZ", "Czech Republic", ["Czech Republic", "Prague", "Brno"]),
-    ("HU", "Hungary",        ["Hungary", "Budapest"]),
-    ("AT", "Austria",        ["Austria", "Vienna", "Graz"]),
-    ("IE", "Ireland",        ["Ireland", "Dublin", "Cork"]),
+    ("germany",        "Germany",        ["Germany", "Berlin", "Munich", "Frankfurt", "Hamburg"]),
+    ("netherlands",    "Netherlands",    ["Netherlands", "Amsterdam", "Rotterdam", "The Hague"]),
+    ("czech republic", "Czech Republic", ["Czech Republic", "Prague", "Brno"]),
+    ("hungary",        "Hungary",        ["Hungary", "Budapest"]),
+    ("austria",        "Austria",        ["Austria", "Vienna", "Graz"]),
+    ("ireland",        "Ireland",        ["Ireland", "Dublin", "Cork"]),
 ]
 
 # Jobs scoring below this (0-100) are excluded from the digest entirely
