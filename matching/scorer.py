@@ -1,18 +1,24 @@
 # matching/scorer.py
 """
-Uses Claude Haiku to score each job against Mohamed's CV profile.
+Uses DeepSeek-V3 (via Azure AI Foundry) to score each job against Mohamed's CV profile.
 Returns enriched job dicts with score (0-100), match reasons, and missing skills.
 """
 import os
 import json
 import logging
-import anthropic
+from openai import AzureOpenAI
 from config import CV_PROFILE, RELOCATION_KEYWORDS, MIN_SCORE_TO_INCLUDE
 
 logger = logging.getLogger(__name__)
 
-# Single client reused across all scoring calls
-anthropic_client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+# Azure AI Foundry client — uses OpenAI-compatible API
+client = AzureOpenAI(
+    api_key=os.environ["AZURE_AI_API_KEY"],
+    azure_endpoint=os.environ["AZURE_AI_ENDPOINT"],
+    api_version="2024-12-01-preview",
+)
+
+MODEL = os.environ.get("AZURE_AI_MODEL", "DeepSeek-V3")
 
 SCORE_PROMPT = """You are a job-CV matching assistant. Score how well this job matches the candidate's profile.
 
@@ -34,7 +40,7 @@ Scoring guide:
 - 55-69: Decent match, worth considering
 - 0-54: Poor match, significant skill or seniority mismatch
 
-Be concise - max 3 reasons and 2 missing items."""
+Be concise - max 3 reasons and 2 missing items. Focus on technical skills, seniority, and domain fit."""
 
 
 def detect_relocation(job: dict) -> bool:
@@ -45,7 +51,7 @@ def detect_relocation(job: dict) -> bool:
 
 def score_job(job: dict) -> dict:
     """
-    Call Claude Haiku to score one job against CV_PROFILE.
+    Call DeepSeek via Azure to score one job against CV_PROFILE.
     Returns dict with keys: score, reasons, missing.
     Falls back to score=0 on any API error.
     """
@@ -57,17 +63,24 @@ def score_job(job: dict) -> dict:
         description=job.get("description", "")[:3000],
     )
     try:
-        response = anthropic_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        response = client.chat.completions.create(
+            model=MODEL,
             max_tokens=256,
+            temperature=0.1,
             messages=[{"role": "user", "content": prompt}],
         )
-        return json.loads(response.content[0].text.strip())
+        raw = response.choices[0].message.content.strip()
+        # Strip markdown code fences if model adds them
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        return json.loads(raw.strip())
     except json.JSONDecodeError as e:
-        logger.warning(f"Claude returned invalid JSON for '{job.get('title')}': {e}")
+        logger.warning(f"Model returned invalid JSON for '{job.get('title')}': {e}")
         return {"score": 0, "reasons": [], "missing": ["parse error"]}
-    except anthropic.APIError as e:
-        logger.error(f"Claude API error for '{job.get('title')}': {e}")
+    except Exception as e:
+        logger.error(f"API error for '{job.get('title')}': {e}")
         return {"score": 0, "reasons": [], "missing": ["api error"]}
 
 
