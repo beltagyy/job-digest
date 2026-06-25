@@ -56,8 +56,6 @@ SEARCH_LOCATIONS = [
     ("germany",        "Germany",        ["Berlin", "Munich", "Frankfurt", "Hamburg", "Stuttgart"]),
     ("netherlands",    "Netherlands",    ["Amsterdam", "Rotterdam", "The Hague", "Eindhoven"]),
     ("ireland",        "Ireland",        ["Dublin", "Cork", "Galway"]),
-    ("switzerland",    "Switzerland",    ["Zurich", "Basel", "Geneva"]),
-    ("belgium",        "Belgium",        ["Brussels", "Antwerp", "Ghent"]),
     # Tier 2 — growing tech hubs, lower cost, active relocation support
     ("czech republic", "Czech Republic", ["Prague", "Brno"]),
     ("poland",         "Poland",         ["Warsaw", "Krakow", "Wroclaw", "Gdansk"]),

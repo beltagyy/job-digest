@@ -88,7 +88,7 @@ def fetch_jobs(max_per_query: int = 20) -> list[dict]:
                         results_wanted=max_per_query,
                         hours_old=48,  # matches 2-day cron cadence exactly
                         country_indeed=country_code,
-                        linkedin_fetch_description=True,   # re-enabled with per-job timeout below
+                        linkedin_fetch_description=True,
                     )
                     if df is None or df.empty:
                         continue
