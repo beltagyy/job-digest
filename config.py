@@ -6,42 +6,14 @@ Edit this file to change search targets, scoring weights, or filters.
 
 # Job search keywords
 SEARCH_TERMS = [
-    # Cloud Security — core target
-    "Senior Cloud Security Engineer",
-    "Cloud Security Engineer",
-    "Cloud Security Architect",
-    # DevSecOps / Platform Security
-    "DevSecOps Engineer",
-    "Platform Security Engineer",
-    "Infrastructure Security Engineer",
-    # Kubernetes / Container
-    "Kubernetes Security",
-    "Security Engineer Kubernetes",
-    "Container Security Engineer",
-    # Cloud Infrastructure & Engineering
-    "Cloud Infrastructure Engineer",
-    "Senior Cloud Engineer",
-    "Cloud Engineer",
-    "Cloud DevOps Engineer",
-    "Cloud Automation Engineer",
-    "Cloud Systems Engineer",
-    "Cloud Development Engineer",
-    # DevOps broad
-    "DevOps Engineer",
-    "Senior DevOps Engineer",
-    # Architecture & Leadership
-    "Solution Architect Cloud",
-    "Cloud Architect",
-    "Cloud Lead Engineer",
-    "Cloud Specialist",
-    # AWS / Azure specific
-    "AWS Security Engineer",
-    "AWS Cloud Engineer",
-    "Azure Security Engineer",
-    "Azure Cloud Engineer",
-    # SRE / Platform
-    "Site Reliability Engineer",
-    "Platform Engineer",
+    "Cloud Security Engineer",    # core — catches senior/lead/junior variants
+    "DevSecOps Engineer",         # devsecops + platform security overlap
+    "Cloud Engineer",             # broad — infra/automation/systems all show up
+    "DevOps Engineer",            # wide net, AI filters out weak matches
+    "Platform Engineer",          # SRE/infra/k8s overlap
+    "Cloud Architect",            # solution architect + cloud lead roles
+    "Kubernetes Engineer",        # container/k8s specific
+    "Site Reliability Engineer",  # SRE with cloud/security angle
 ]
 
 # Companies known to actively sponsor visas and support relocation to EU.
@@ -55,18 +27,26 @@ KNOWN_RELOCATORS = {
     # Fintech scale-ups
     "adyen", "bolt", "wise", "revolut", "n26", "monzo",
     "stripe", "klarna", "sumup", "mollie", "checkout.com",
+    "bunq", "paysafe", "mambu", "solaris",
     # Marketplaces / Consumer
     "ebay", "zalando", "booking.com", "booking", "delivery hero",
-    "trivago", "hellofresh",
+    "trivago", "hellofresh", "aboutyou", "windtre",
     # Cloud / Infra / Security
     "cloudflare", "hashicorp", "datadog", "dynatrace",
     "crowdstrike", "palo alto", "wiz", "snyk", "elastic",
-    # EU Tech
+    "grafana", "gitlab", "github", "atlassian",
+    # EU Big Tech
     "siemens", "bosch", "deutsche telekom", "telefonica",
     "criteo", "ovhcloud", "teamviewer", "personio", "celonis",
-    # Other known EU relocators
-    "spotify", "skyscanner", "transferwise", "messagebird",
-    "contentful", "signavio", "sennder",
+    "bmw", "volkswagen", "continental", "mercedes",
+    # Unicorns / well-funded startups known for relocation
+    "spotify", "skyscanner", "wise", "messagebird",
+    "contentful", "signavio", "sennder", "gorillas", "flink",
+    "taxfix", "trade republic", "auto1", "homeday", "clark",
+    "sumup", "moss", "billie", "solarisbank", "penta",
+    # Consulting / Enterprise known for visa sponsorship
+    "deloitte", "accenture", "thoughtworks", "capgemini",
+    "pwc", "kpmg", "infosys", "wipro", "tata",
 }
 
 # Target countries & cities
