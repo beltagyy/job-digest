@@ -18,14 +18,49 @@ SEARCH_TERMS = [
     "Kubernetes Security",
     "Security Engineer Kubernetes",
     "Container Security Engineer",
-    # Cloud Infrastructure (broader — catches hybrid roles)
+    # Cloud Infrastructure & Engineering
     "Cloud Infrastructure Engineer",
-    "Senior Cloud Engineer Security",
+    "Senior Cloud Engineer",
+    "Cloud Engineer",
+    "Cloud DevOps Engineer",
+    "Cloud Automation Engineer",
+    "Cloud Systems Engineer",
+    "Cloud Development Engineer",
+    # DevOps broad
+    "DevOps Engineer",
+    "Senior DevOps Engineer",
+    # Architecture & Leadership
+    "Solution Architect Cloud",
+    "Cloud Architect",
+    "Cloud Lead Engineer",
+    "Cloud Specialist",
+    # AWS / Azure specific
     "AWS Security Engineer",
+    "AWS Cloud Engineer",
     "Azure Security Engineer",
-    # SRE / Platform with security angle
-    "Site Reliability Engineer Security",
-    "Platform Engineer DevSecOps",
+    "Azure Cloud Engineer",
+    # SRE / Platform
+    "Site Reliability Engineer",
+    "Platform Engineer",
+]
+
+# Big tech + scale-ups known for strong relocation packages
+# Appended to SEARCH_TERMS as "role at company" queries for targeted search
+COMPANY_TARGETS = [
+    # Big Tech
+    "Amazon Web Services", "AWS", "Google", "Microsoft", "Meta",
+    "Apple", "Salesforce", "Oracle", "IBM", "SAP",
+    # Fintech / Scale-ups with strong relocation
+    "Adyen", "Bolt", "Wise", "Revolut", "N26", "Monzo",
+    "Stripe", "Klarna", "SumUp", "Mollie", "Checkout.com",
+    # eBay / Marketplaces
+    "eBay", "Zalando", "Booking.com", "Delivery Hero",
+    # Cloud / Infra companies
+    "Cloudflare", "HashiCorp", "Datadog", "Dynatrace",
+    "CrowdStrike", "Palo Alto Networks", "Wiz",
+    # German / EU tech
+    "Siemens", "Bosch", "Deutsche Telekom", "Telefonica",
+    "Criteo", "OVHcloud", "TeamViewer",
 ]
 
 # Target countries & cities
