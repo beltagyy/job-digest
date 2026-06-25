@@ -71,8 +71,7 @@ def fetch_jobs(max_per_query: int = 20) -> list[dict]:
                         results_wanted=max_per_query,
                         hours_old=72,
                         country_indeed=country_code,
-                        linkedin_fetch_description=True,
-                        linkedin_fetch_description_timeout=10,
+                        linkedin_fetch_description=False,  # disabled — causes silent hangs
                     )
                     if df is None or df.empty:
                         continue
