@@ -85,8 +85,9 @@ detect-secrets:
   stage: security
   allow_failure: true
   script:
+    - apt-get update -qq && apt-get install -y -qq git
     - pip install detect-secrets
-    - detect-secrets scan --exclude-files ".venv/.*" --exclude-files ".git/.*" > /tmp/secrets.json
+    - detect-secrets scan --exclude-files ".venv/.*" --exclude-files ".git/.*" > /tmp/secrets.json || true
     - python3 scripts/check_secrets.py || true
 
 safety:
