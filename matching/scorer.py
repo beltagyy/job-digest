@@ -1,7 +1,7 @@
 # matching/scorer.py
 """
-Uses DeepSeek-V3 (via Azure AI Foundry serverless endpoint) to score each job.
-Returns enriched job dicts with score (0-100), match reasons, and missing skills.
+Uses DeepSeek-V3.2 (via Azure AI Foundry) to score each job and generate
+a tailored cover letter for Mohamed's profile.
 """
 import os
 import json
@@ -11,13 +11,12 @@ from config import CV_PROFILE, RELOCATION_KEYWORDS, MIN_SCORE_TO_INCLUDE
 
 logger = logging.getLogger(__name__)
 
-# Azure AI Foundry serverless endpoint — uses standard OpenAI-compatible API
 client = OpenAI(
     api_key=os.environ["AZURE_AI_API_KEY"],
     base_url=os.environ["AZURE_AI_ENDPOINT"].rstrip("/") + "/openai/v1/",
 )
 
-MODEL = os.environ.get("AZURE_AI_MODEL", "DeepSeek-V3")
+MODEL = os.environ.get("AZURE_AI_MODEL", "DeepSeek-V3.2")
 
 SCORE_PROMPT = """You are a job-CV matching assistant. Score how well this job matches the candidate's profile.
 
@@ -36,20 +35,42 @@ Return ONLY a valid JSON object (no markdown, no explanation) in this exact form
 Scoring guide:
 - 85-100: Near-perfect match
 - 70-84: Strong match, 1-2 gaps
-- 55-69: Decent match, worth considering
+- 55-69: Decent match
 - 0-54: Poor match
 
-Be concise - max 3 reasons and 2 missing items."""
+Max 3 reasons, max 2 missing items. Focus on technical skills, seniority, domain fit."""
+
+COVER_LETTER_PROMPT = """Write a short, professional cover letter opening for this job application.
+
+CANDIDATE: Mohamed ElBeltagy
+{cv_profile}
+
+JOB:
+Title: {title}
+Company: {company}
+Location: {location}
+Description excerpt: {description}
+
+Write EXACTLY 2 paragraphs, each 3 lines long.
+- Paragraph 1: Why Mohamed is excited about THIS specific company/role and what he brings
+- Paragraph 2: 2-3 specific technical strengths that match this job + closing sentence showing interest
+
+Rules:
+- Be specific to THIS job — mention the company name and 1-2 specific things from the job description
+- Sound human and confident, not generic
+- Do NOT use "I am writing to apply" or "Dear Hiring Manager"
+- Do NOT add a subject line or signature
+- Return plain text only, no markdown"""
 
 
 def detect_relocation(job: dict) -> bool:
-    """Check if job description mentions relocation/visa support."""
+    """Check if job description or title mentions relocation/visa support."""
     text = (job.get("description", "") + " " + job.get("title", "")).lower()
     return any(kw in text for kw in RELOCATION_KEYWORDS)
 
 
 def score_job(job: dict) -> dict:
-    """Call DeepSeek via Azure to score one job. Falls back to score=0 on error."""
+    """Score one job against CV. Returns dict with score, reasons, missing."""
     prompt = SCORE_PROMPT.format(
         cv_profile=CV_PROFILE,
         title=job.get("title", ""),
@@ -65,37 +86,68 @@ def score_job(job: dict) -> dict:
             messages=[{"role": "user", "content": prompt}],
         )
         raw = response.choices[0].message.content.strip()
-        # Strip markdown fences if model adds them
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
         return json.loads(raw.strip())
     except json.JSONDecodeError as e:
-        logger.warning(f"Model returned invalid JSON for '{job.get('title')}': {e}")
+        logger.warning(f"Invalid JSON for '{job.get('title')}': {e}")
         return {"score": 0, "reasons": [], "missing": ["parse error"]}
     except Exception as e:
         logger.error(f"API error for '{job.get('title')}': {e}")
         return {"score": 0, "reasons": [], "missing": ["api error"]}
 
 
+def generate_cover_letter(job: dict) -> str:
+    """Generate a 2-paragraph tailored cover letter for one job."""
+    prompt = COVER_LETTER_PROMPT.format(
+        cv_profile=CV_PROFILE,
+        title=job.get("title", ""),
+        company=job.get("company", ""),
+        location=job.get("location", ""),
+        description=job.get("description", "")[:2000],
+    )
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            max_tokens=300,
+            temperature=0.7,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error(f"Cover letter error for '{job.get('title')}': {e}")
+        return ""
+
+
 def enrich_jobs(jobs: list[dict]) -> list[dict]:
-    """Score all jobs, filter below threshold, return sorted by score desc."""
+    """
+    Score all jobs, filter below threshold, generate cover letters for passing jobs.
+    Returns list sorted by score descending.
+    """
     enriched = []
     for i, job in enumerate(jobs):
         logger.info(f"Scoring {i+1}/{len(jobs)}: {job.get('title')} @ {job.get('company')}")
         result = score_job(job)
         score = result.get("score", 0)
+
         if score < MIN_SCORE_TO_INCLUDE:
             continue
+
+        # Generate cover letter only for jobs that passed the threshold
+        logger.info(f"  → {score}% match — generating cover letter")
+        cover_letter = generate_cover_letter(job)
+
         enriched.append({
             **job,
-            "score":      score,
-            "reasons":    result.get("reasons", []),
-            "missing":    result.get("missing", []),
-            "relocation": detect_relocation(job),
+            "score":        score,
+            "reasons":      result.get("reasons", []),
+            "missing":      result.get("missing", []),
+            "relocation":   detect_relocation(job),
+            "cover_letter": cover_letter,
         })
 
     enriched.sort(key=lambda j: j["score"], reverse=True)
-    logger.info(f"Scoring done: {len(enriched)}/{len(jobs)} passed threshold")
+    logger.info(f"Scoring done: {len(enriched)}/{len(jobs)} passed {MIN_SCORE_TO_INCLUDE}% threshold")
     return enriched

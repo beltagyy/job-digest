@@ -16,21 +16,25 @@ SEARCH_TERMS = [
 SEARCH_LOCATIONS = [
     ("germany",        "Germany",        ["Germany", "Berlin", "Munich", "Frankfurt", "Hamburg"]),
     ("netherlands",    "Netherlands",    ["Netherlands", "Amsterdam", "Rotterdam", "The Hague"]),
-    ("czech republic", "Czech Republic", ["Czech Republic", "Prague", "Brno"]),
+    ("czech republic", "Czech Republic", ["Czech Republic", "Prague"]),
     ("hungary",        "Hungary",        ["Hungary", "Budapest"]),
-    ("austria",        "Austria",        ["Austria", "Vienna", "Graz"]),
-    ("ireland",        "Ireland",        ["Ireland", "Dublin", "Cork"]),
+    ("austria",        "Austria",        ["Austria", "Vienna"]),
+    ("ireland",        "Ireland",        ["Ireland", "Dublin"]),
 ]
 
 # Jobs scoring below this (0-100) are excluded from the digest entirely
-MIN_SCORE_TO_INCLUDE = 55
+MIN_SCORE_TO_INCLUDE = 70
 
 # If ANY of these appear in the job description, the job is flagged as relocation-friendly
 RELOCATION_KEYWORDS = [
-    "relocation", "relocation assistance", "relocation support",
-    "visa sponsorship", "work permit", "we sponsor", "sponsorship provided",
-    "help with relocation", "moving allowance", "expat",
+    "relocation", "relocation assistance", "relocation support", "relocation package",
+    "visa sponsorship", "visa support", "work permit", "work visa",
+    "we sponsor", "sponsorship provided", "sponsorship available",
+    "help with relocation", "moving allowance", "moving expenses", "expat",
     "international candidates", "open to candidates from abroad",
+    "candidates outside", "non-EU candidates", "non-eu",
+    "umzugshilfe", "umzugskosten", "relokace", "relokácia",
+    "willing to relocate", "open to relocation", "support relocation",
 ]
 
 # Your CV profile — used for AI matching prompt
