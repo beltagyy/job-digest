@@ -547,7 +547,15 @@ Mark jobs as "Applied", "Interview", "Rejected", or "Ignored" directly from the 
 #### 5. 👥 Multi-User SaaS Mode
 Each user registers with email + CV profile. The bot runs on a shared schedule and delivers personalized digests to each user. Requires: FastAPI backend, PostgreSQL (replacing SQLite), per-user job queues, Stripe for billing (~€5/month per user). Only built if demand is proven by demo + config generator phases.
 
-#### 6. 🤖 Easy Apply Bot (Optional / Opt-in)
+#### 6. ⚡ Parallel Scraping & Performance Optimization
+Current scraping is fully sequential (~30s per query × 130 queries = 30-40 min runtime). Planned improvements:
+- **Country-level parallelism** — scrape Tier 2/3 countries concurrently (they're lower traffic, less likely to be rate-limited)
+- **Indeed-only fallback** — Indeed is 3-5x faster than LinkedIn per query; run Indeed in parallel while LinkedIn runs sequentially
+- **Smart caching** — skip queries where no new jobs appeared in last 3 runs (stale country/term combos)
+- **Incremental `hours_old`** — first run uses 72h, subsequent runs use `(hours since last run + 6h)` to avoid refetching
+- **Target runtime: under 10 minutes** end-to-end
+
+#### 7. 🤖 Easy Apply Bot (Optional / Opt-in)
 For jobs marked "Easy Apply" on LinkedIn, an optional mode that auto-fills and submits the application using the generated cover letter. Strictly opt-in, rate-limited (max 5/day), runs with human-like delays. Carries ToS risk — users acknowledge this explicitly before enabling.
 
 ---
