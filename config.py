@@ -13,7 +13,7 @@ SEARCH_TERMS = [
     "Platform Engineer",          # SRE/infra/k8s overlap
     "Cloud Architect",            # solution architect + cloud lead roles
     "Kubernetes Engineer",        # container/k8s specific
-    "Site Reliability Engineer",  # SRE with cloud/security angle
+    # "Site Reliability Engineer",  # removed — too generic, low signal
 ]
 
 # Companies known to actively sponsor visas and support relocation to EU.
@@ -52,20 +52,19 @@ KNOWN_RELOCATORS = {
 # Target countries & cities
 # Each entry: (country_code_for_jobspy, display_name, city_list)
 SEARCH_LOCATIONS = [
-    # Tier 1 — primary targets (highest job density, strong relocation culture)
+    # ── ACTIVE ──────────────────────────────────────────────────────────────
     ("germany",        "Germany",        ["Berlin", "Munich", "Frankfurt", "Hamburg", "Dusseldorf"]),
-    ("netherlands",    "Netherlands",    ["Amsterdam", "Rotterdam", "The Hague", "Eindhoven"]),
-    ("ireland",        "Ireland",        ["Dublin", "Cork"]),
-    # Tier 2 — growing tech hubs, lower cost, active relocation support
-    ("czech republic", "Czech Republic", ["Prague", "Brno"]),
-    ("poland",         "Poland",         ["Warsaw", "Krakow"]),
-    ("austria",        "Austria",        ["Vienna", "Graz"]),
-    ("spain",          "Spain",          ["Barcelona", "Madrid"]),
-    ("estonia",        "Estonia",        ["Tallinn"]),
-    # Tier 3 — emerging, worth monitoring
-    ("hungary",        "Hungary",        ["Budapest"]),
-    ("croatia",        "Croatia",        ["Zagreb"]),
-    ("bulgaria",       "Bulgaria",       ["Sofia"]),
+    # ── COMMENTED OUT (re-enable when ready) ────────────────────────────────
+    # ("netherlands",    "Netherlands",    ["Amsterdam", "Rotterdam", "The Hague", "Eindhoven"]),
+    # ("ireland",        "Ireland",        ["Dublin"]),           # Dublin only
+    # ("czech republic", "Czech Republic", ["Prague", "Brno"]),
+    # ("poland",         "Poland",         ["Warsaw"]),           # Warsaw only
+    # ("austria",        "Austria",        ["Vienna", "Graz"]),
+    # ("estonia",        "Estonia",        ["Tallinn"]),
+    # ("hungary",        "Hungary",        ["Budapest"]),
+    # ("croatia",        "Croatia",        ["Zagreb"]),
+    # ("bulgaria",       "Bulgaria",       ["Sofia"]),
+    # Spain removed entirely
 ]
 
 # Jobs scoring below this (0-100) are excluded from the digest entirely

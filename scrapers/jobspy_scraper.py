@@ -86,9 +86,9 @@ def fetch_jobs(max_per_query: int = 20) -> list[dict]:
                         search_term=term,
                         location=city,
                         results_wanted=max_per_query,
-                        hours_old=48,  # matches 2-day cron cadence exactly
+                        hours_old=48,   # matches 2-day cron cadence exactly
                         country_indeed=country_code,
-                        linkedin_fetch_description=True,
+                        linkedin_fetch_description=False,  # disabled — causes silent hangs; Indeed provides full descriptions
                     )
                     if df is None or df.empty:
                         continue
