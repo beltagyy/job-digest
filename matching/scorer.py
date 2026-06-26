@@ -53,49 +53,20 @@ def _get_client() -> OpenAI:
 
 MODEL = os.environ.get("AZURE_AI_MODEL", "DeepSeek-V3.2")
 
-SCORE_PROMPT = """You are a job-CV matching assistant. Score how well this job matches the candidate's profile.
+SCORE_PROMPT = """Score this job for: Senior Cloud Security Engineer, 6yr exp, AWS/Azure/GCP, Kubernetes/EKS/AKS, Cilium/eBPF, Falco, Wiz CNAPP, DevSecOps, ArgoCD, Terraform, Pulumi, GDPR/NIS2, Go/Python. Relocating Cairo→EU.
 
-CANDIDATE PROFILE:
-{cv_profile}
+Job: {title} @ {company} ({country})
+{description}
 
-JOB:
-Title: {title}
-Company: {company}
-Country: {country}
-Description: {description}
+Return ONLY JSON: {{"score":<0-100>,"reasons":["r1","r2"],"missing":["g1"]}}
+85-100=perfect,70-84=strong,55-69=decent,<55=poor. Max 2 reasons+1 gap."""
 
-Return ONLY a valid JSON object (no markdown, no explanation) in this exact format:
-{{"score": <integer 0-100>, "reasons": ["reason1", "reason2", "reason3"], "missing": ["gap1", "gap2"]}}
-
-Scoring guide:
-- 85-100: Near-perfect match
-- 70-84: Strong match, 1-2 gaps
-- 55-69: Decent match
-- 0-54: Poor match
-
-Max 3 reasons, max 2 missing items. Focus on technical skills, seniority, domain fit."""
-
-COVER_LETTER_PROMPT = """Write a short, professional cover letter opening for this job application.
-
-CANDIDATE: Mohamed ElBeltagy
-{cv_profile}
-
-JOB:
-Title: {title}
-Company: {company}
-Location: {location}
-Description excerpt: {description}
-
-Write EXACTLY 2 paragraphs, each 3 lines long.
-- Paragraph 1: Why Mohamed is excited about THIS specific company/role and what he brings
-- Paragraph 2: 2-3 specific technical strengths that match this job + closing sentence showing interest
-
-Rules:
-- Be specific to THIS job — mention the company name and 1-2 specific things from the job description
-- Sound human and confident, not generic
-- Do NOT use "I am writing to apply" or "Dear Hiring Manager"
-- Do NOT add a subject line or signature
-- Return plain text only, no markdown"""
+COVER_LETTER_PROMPT = """Write 2 short paragraphs (3 lines each) as Mohamed ElBeltagy applying for {title} at {company} in {location}.
+Mohamed: Senior Cloud Security Engineer, 6yr, AWS/K8s/Wiz/DevSecOps, relocating Cairo→EU.
+Job: {description}
+- Para 1: excitement about THIS company+role, what he brings
+- Para 2: 2 matching technical strengths + closing
+No "I am writing to apply", no signature, plain text only."""
 
 
 def detect_relocation(job: dict) -> bool:
@@ -117,7 +88,7 @@ def score_job(job: dict) -> dict:
         title=job.get("title", ""),
         company=job.get("company", ""),
         country=job.get("country", ""),
-        description=job.get("description", "")[:3000],
+        description=job.get("description", "")[:800],   # capped to stay under token limit
     )
     try:
         response = _get_client().chat.completions.create(
@@ -147,7 +118,7 @@ def generate_cover_letter(job: dict) -> str:
         title=job.get("title", ""),
         company=job.get("company", ""),
         location=job.get("location", ""),
-        description=job.get("description", "")[:2000],
+        description=job.get("description", "")[:800],   # capped to stay under token limit
     )
     try:
         response = _get_client().chat.completions.create(
