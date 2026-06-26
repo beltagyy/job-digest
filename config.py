@@ -53,19 +53,19 @@ KNOWN_RELOCATORS = {
 # Each entry: (country_code_for_jobspy, display_name, city_list)
 SEARCH_LOCATIONS = [
     # Tier 1 — primary targets (highest job density, strong relocation culture)
-    ("germany",        "Germany",        ["Berlin", "Munich", "Frankfurt", "Hamburg", "Stuttgart"]),
+    ("germany",        "Germany",        ["Berlin", "Munich", "Frankfurt", "Hamburg", "Dusseldorf"]),
     ("netherlands",    "Netherlands",    ["Amsterdam", "Rotterdam", "The Hague", "Eindhoven"]),
-    ("ireland",        "Ireland",        ["Dublin", "Cork", "Galway"]),
+    ("ireland",        "Ireland",        ["Dublin", "Cork"]),
     # Tier 2 — growing tech hubs, lower cost, active relocation support
     ("czech republic", "Czech Republic", ["Prague", "Brno"]),
-    ("poland",         "Poland",         ["Warsaw", "Krakow", "Wroclaw", "Gdansk"]),
-    ("austria",        "Austria",        ["Vienna", "Graz", "Linz"]),
-    ("spain",          "Spain",          ["Barcelona", "Madrid", "Valencia"]),
-    ("estonia",        "Estonia",        ["Tallinn", "Tartu"]),
+    ("poland",         "Poland",         ["Warsaw", "Krakow"]),
+    ("austria",        "Austria",        ["Vienna", "Graz"]),
+    ("spain",          "Spain",          ["Barcelona", "Madrid"]),
+    ("estonia",        "Estonia",        ["Tallinn"]),
     # Tier 3 — emerging, worth monitoring
     ("hungary",        "Hungary",        ["Budapest"]),
-    ("croatia",        "Croatia",        ["Zagreb", "Split"]),
-    ("bulgaria",       "Bulgaria",       ["Sofia", "Plovdiv"]),
+    ("croatia",        "Croatia",        ["Zagreb"]),
+    ("bulgaria",       "Bulgaria",       ["Sofia"]),
 ]
 
 # Jobs scoring below this (0-100) are excluded from the digest entirely
