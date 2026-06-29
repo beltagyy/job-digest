@@ -50,9 +50,11 @@ def main():
     all_jobs = fetch_jobspy()
 
     # YourEnglishJob.com — English-only Germany jobs (no German required)
-    yej_jobs = fetch_yej()
-    all_jobs.extend(yej_jobs)
-    logger.info(f"YEJ added {len(yej_jobs)} jobs")
+    # NOTE: /api/search returns 500 errors on their side as of 2026-06-29.
+    # Re-enable when their search endpoint is fixed — will add meaningful signal.
+    # yej_jobs = fetch_yej()
+    # all_jobs.extend(yej_jobs)
+    # logger.info(f"YEJ added {len(yej_jobs)} jobs")
 
     if not args.no_xing:
         all_jobs.extend(fetch_xing())
