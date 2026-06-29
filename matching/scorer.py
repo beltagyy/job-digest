@@ -36,20 +36,31 @@ TITLE_JUNK = {
     "support engineer", "helpdesk", "1st line", "2nd line",
 }
 
-SCORE_PROMPT = """Score this job for: Senior Cloud Security Engineer, 6yr, AWS/Azure/GCP, Kubernetes/EKS/AKS, Cilium/eBPF, Falco, Wiz CNAPP, DevSecOps, ArgoCD, Terraform, Pulumi, GDPR/NIS2, Go/Python. Cairo→EU relocation.
+SCORE_PROMPT = """You are a strict job matcher. Score this job for Mohamed, a Senior Cloud Security Engineer relocating Cairo to EU.
+
+CANDIDATE: 6yr exp, AWS/Azure/GCP, Kubernetes/EKS/AKS, Cilium/eBPF, Falco, Wiz CNAPP, DevSecOps, ArgoCD, Terraform, Pulumi, GDPR/NIS2, Go/Python, German B1.
+
+SCORING — be strict, only score high on genuine match:
+- Base: technical skill overlap with job requirements
+- +10 if: relocation support / visa sponsorship / international candidates mentioned
+- +5 if: startup or scale-up company
+- +5 if: fewer than 25 applicants OR posted less than 24h ago
+- -15 if: purely consulting/advisory, no hands-on engineering
+- -10 if: requires EU/local citizenship only
+- Hard cap 50: if zero cloud/security/devops overlap
 
 Job: {title} @ {company} ({country})
 {description}
 
-Return ONLY JSON: {{"score":<0-100>,"reasons":["r1","r2"],"missing":["g1"]}}
-85+=perfect,70+=strong,55+=decent,<55=poor. Max 2 reasons, 1 gap."""
+Return ONLY JSON: {{"score":<0-100>,"reasons":["r1","r2"],"missing":["g1"],"relocation_signal":true}}
+90+=perfect,80+=strong,75+=good,<75=not worth it. Max 2 reasons, 1 gap."""
 
-COVER_LETTER_PROMPT = """Write 2 paragraphs (3 lines each) as Mohamed ElBeltagy applying for {title} at {company}, {location}.
-Mohamed: Senior Cloud Security Engineer, 6yr AWS/K8s/Wiz/DevSecOps, Cairo→EU.
-Job context: {description}
-Para 1: why THIS company+role excites him, what he brings.
-Para 2: 2 matching technical strengths + interest closing.
-No "I am writing to apply", no signature, plain text."""
+COVER_LETTER_PROMPT = """Write 2 short paragraphs (3 lines each) for Mohamed ElBeltagy applying to {title} at {company} in {location}.
+Mohamed: Senior Cloud Security Engineer, 6yr, AWS/K8s/Wiz/DevSecOps, relocating Cairo to EU, German B1.
+Job: {description}
+Para 1: genuine excitement about THIS specific company/role + what he brings that directly matches.
+Para 2: 2 concrete technical strengths that fit this role + strong closing line.
+Be specific not generic, mention company name, confident tone, plain text, no "I am writing to apply", no signature."""
 
 
 # ── Subprocess worker script ──────────────────────────────────────────────────

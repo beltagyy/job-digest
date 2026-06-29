@@ -68,7 +68,7 @@ SEARCH_LOCATIONS = [
 ]
 
 # Jobs scoring below this (0-100) are excluded from the digest entirely
-MIN_SCORE_TO_INCLUDE = 70
+MIN_SCORE_TO_INCLUDE = 75
 
 # If ANY of these appear in the job description, the job is flagged as relocation-friendly
 RELOCATION_KEYWORDS = [
