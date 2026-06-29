@@ -39,22 +39,39 @@ def _make_id(job_id: str) -> str:
 def _normalize(job: dict) -> dict:
     """Convert a YEJ API job object to our internal job dict schema."""
     job_id = str(job.get("id", ""))
-    company = job.get("company_name") or job.get("company", {})
+    company = job.get("company_name") or job.get("company", "Unknown Company")
     if isinstance(company, dict):
         company = company.get("name", "Unknown Company")
+
+    # Build location string from city + country
+    city = job.get("city") or ""
+    country = job.get("country") or "Germany"
+    location = f"{city}, {country}".strip(", ") if city else country
+
+    remote_type = str(job.get("remote_type", "")).lower()
+    is_remote = remote_type in ("remote", "hybrid") or "remote" in location.lower()
+
+    # Use the job's own URL if available, otherwise construct from slug
+    url = job.get("url") or f"https://yourenglishjob.com/jobs/{job.get('slug', job_id)}"
+
+    # Description: use full description or preview
+    description = job.get("description") or job.get("description_preview") or ""
+
+    date_raw = job.get("posted_date") or job.get("created_at") or ""
+    date_posted = str(date_raw)[:10] if date_raw else ""
 
     return {
         "id":           _make_id(job_id),
         "title":        str(job.get("title", "Unknown Title")),
         "company":      str(company),
-        "location":     str(job.get("location", "Germany")),
+        "location":     location,
         "country_code": COUNTRY_CODE,
         "country":      COUNTRY_DISPLAY,
-        "url":          f"https://yourenglishjob.com/jobs/{job.get('slug', job_id)}",
+        "url":          url,
         "source":       "yourenglishjob",
-        "description":  str(job.get("description", ""))[:4000],
-        "date_posted":  str(job.get("created_at", "")[:10] if job.get("created_at") else ""),
-        "is_remote":    bool(job.get("remote") or "remote" in str(job.get("location", "")).lower()),
+        "description":  str(description)[:4000],
+        "date_posted":  date_posted,
+        "is_remote":    is_remote,
     }
 
 
