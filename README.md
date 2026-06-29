@@ -1,6 +1,6 @@
 # 🔍 Job Digest Bot
 
-> A personal AI-powered job search assistant that scrapes LinkedIn and Indeed every 2 days, scores each listing against your CV using an LLM, and emails you a curated digest with tailored cover letters — so you only see roles worth your time.
+> A personal AI-powered job search assistant that scrapes LinkedIn and Indeed every 2 days across 10 EU countries, scores each listing against your CV using an LLM, and emails you a curated digest with tailored cover letters — so you only see roles worth your time. Runs in **~5 minutes** end-to-end using fully parallel scraping and scoring.
 
 ---
 
@@ -29,12 +29,25 @@
 
 ---
 
+## Performance
+
+| Stage | Time |
+|-------|------|
+| Scraping (10 countries, parallel) | ~2 min |
+| Scoring (parallel subprocess batches) | ~3 min |
+| **Total end-to-end** | **~5 min** |
+
+Previous sequential approach took ~75 min. Parallel architecture = **14x speedup**.
+
 ## Tech Stack
 
 | Layer | Tool | Cost |
 |-------|------|------|
 | Scraping | [JobSpy](https://github.com/Bunsly/JobSpy) (LinkedIn + Indeed) | Free |
-| AI Scoring & Cover Letters | Any OpenAI-compatible LLM | Pay-per-use |
+| Parallel scraping | `ThreadPoolExecutor` (6 workers) | Free |
+| AI Scoring & Cover Letters | Any OpenAI-compatible LLM (DeepSeek-V3.2 default) | Pay-per-use |
+| Scoring | Parallel subprocess batches of 40 (avoids 128k token limit) | - |
+| Pre-filter | Title keyword filter (removes junk before AI) | Free |
 | Deduplication | SQLite (stdlib) | Free |
 | Email | [Resend.com](https://resend.com) | Free (3k/month) |
 | Template | Jinja2 HTML | Free |
@@ -292,19 +305,22 @@ AZURE_AI_MODEL=llama3.1
 ```
 job-digest/
 ├── run.py                              # Entry point — orchestrates the pipeline
-├── config.py                           # ⚙️  All tunables: CV profile, search targets, thresholds
+├── config.py                           # ⚙️  All tunables: CV profile, countries, threshold
 ├── requirements.txt
 ├── .env.example                        # Template for secrets
+├── .gitlab-ci.yml                      # CI pipeline: lint + tests + SAST security checks
+├── scripts/
+│   └── check_secrets.py                # Called by CI detect-secrets job
 │
 ├── scrapers/
-│   ├── jobspy_scraper.py               # LinkedIn + Indeed via JobSpy
-│   └── xing_scraper.py                 # Xing via Playwright (DE/AT/CZ/HU)
+│   └── jobspy_scraper.py               # Parallel scraping via ThreadPoolExecutor (6 workers)
 │
 ├── matching/
-│   └── scorer.py                       # LLM scoring + cover letter generation
+│   └── scorer.py                       # Parallel subprocess batch scoring (40 jobs/batch)
+│                                       # Each subprocess = fresh API session (no 128k limit)
 │
 ├── storage/
-│   └── db.py                           # SQLite deduplication
+│   └── db.py                           # SQLite deduplication (30-day window)
 │
 ├── email_digest/
 │   ├── renderer.py                     # Jinja2 HTML rendering
@@ -314,7 +330,7 @@ job-digest/
 │
 └── tests/
     ├── test_db.py
-    ├── test_scorer.py
+    ├── test_scorer.py                  # Tests pre-filter, relocation detection, enrich_jobs
     ├── test_renderer.py
     └── fixtures/sample_jobs.json
 ```
@@ -336,11 +352,24 @@ Tests use mocked API calls — no real LLM calls or emails are made.
 | Component | Usage | Cost |
 |-----------|-------|------|
 | VPS (Azure B2s, Sweden Central) | Always on | ~$30/month (or free with startup credits) |
-| LLM scoring (DeepSeek-V3.2 via Azure) | ~300 jobs × 2 runs/week | ~$0.10–0.50/month |
+| LLM scoring (DeepSeek-V3.2 via Azure AI Foundry) | ~630 jobs × 2 runs/week, parallel batches | ~$0.20–0.50/month |
 | Resend email | 2 emails/week | Free (3,000/month limit) |
 | **Total** | | **~$0.50–1/month** (after credits) |
 
-> Using **Azure for Startups** ($1,000 credit) or **Oracle Cloud Always Free** (Frankfurt VM): **$0/month** for 12+ months.
+> Using **Azure for Startups** ($1,000 credit): **$0/month** for 12+ months.
+
+## Scoring Logic
+
+The AI model scores each job 0–100 with these rules:
+- **Base score**: technical skill overlap with job requirements
+- **+10 bonus**: relocation support / visa sponsorship mentioned
+- **+5 bonus**: startup or scale-up company
+- **+5 bonus**: fewer than 25 applicants or posted <24h ago
+- **-15 penalty**: purely consulting/advisory, no hands-on engineering
+- **-10 penalty**: requires EU/local citizenship only
+- **Hard cap 50**: zero cloud/security/devops overlap
+
+Default threshold: **75%** — only genuinely strong matches reach your inbox.
 
 ---
 
