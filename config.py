@@ -52,19 +52,19 @@ KNOWN_RELOCATORS = {
 # Target countries & cities
 # Each entry: (country_code_for_jobspy, display_name, city_list)
 SEARCH_LOCATIONS = [
-    # ── ACTIVE ──────────────────────────────────────────────────────────────
+    # Tier 1 — highest job density
     ("germany",        "Germany",        ["Berlin", "Munich", "Frankfurt", "Hamburg", "Dusseldorf"]),
-    # ── COMMENTED OUT (re-enable when ready) ────────────────────────────────
-    # ("netherlands",    "Netherlands",    ["Amsterdam", "Rotterdam", "The Hague", "Eindhoven"]),
-    # ("ireland",        "Ireland",        ["Dublin"]),           # Dublin only
-    # ("czech republic", "Czech Republic", ["Prague", "Brno"]),
-    # ("poland",         "Poland",         ["Warsaw"]),           # Warsaw only
-    # ("austria",        "Austria",        ["Vienna", "Graz"]),
-    # ("estonia",        "Estonia",        ["Tallinn"]),
-    # ("hungary",        "Hungary",        ["Budapest"]),
-    # ("croatia",        "Croatia",        ["Zagreb"]),
-    # ("bulgaria",       "Bulgaria",       ["Sofia"]),
-    # Spain removed entirely
+    ("netherlands",    "Netherlands",    ["Amsterdam", "Rotterdam", "The Hague", "Eindhoven"]),
+    ("ireland",        "Ireland",        ["Dublin"]),
+    # Tier 2 — growing tech hubs
+    ("czech republic", "Czech Republic", ["Prague", "Brno"]),
+    ("poland",         "Poland",         ["Warsaw"]),
+    ("austria",        "Austria",        ["Vienna", "Graz"]),
+    ("estonia",        "Estonia",        ["Tallinn"]),
+    # Tier 3 — emerging
+    ("hungary",        "Hungary",        ["Budapest"]),
+    ("croatia",        "Croatia",        ["Zagreb"]),
+    ("bulgaria",       "Bulgaria",       ["Sofia"]),
 ]
 
 # Jobs scoring below this (0-100) are excluded from the digest entirely
