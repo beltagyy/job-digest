@@ -30,6 +30,7 @@ logger = logging.getLogger("run")
 
 from scrapers.jobspy_scraper import fetch_jobs as fetch_jobspy
 from scrapers.xing_scraper import fetch_jobs as fetch_xing
+from scrapers.yej_scraper import fetch_jobs as fetch_yej
 from matching.scorer import enrich_jobs
 from storage.db import JobDatabase
 from email_digest.renderer import render_digest
@@ -47,6 +48,12 @@ def main():
 
     # 1. Scrape
     all_jobs = fetch_jobspy()
+
+    # YourEnglishJob.com — English-only Germany jobs (no German required)
+    yej_jobs = fetch_yej()
+    all_jobs.extend(yej_jobs)
+    logger.info(f"YEJ added {len(yej_jobs)} jobs")
+
     if not args.no_xing:
         all_jobs.extend(fetch_xing())
     else:
