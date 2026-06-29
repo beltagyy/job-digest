@@ -164,7 +164,7 @@ def _score_batch(batch: list[dict]) -> list[dict]:
             input=json.dumps(batch),
             capture_output=True,
             text=True,
-            timeout=300,
+            timeout=480,   # 8 min — covers slow DeepSeek responses
             env={**os.environ},
         )
         if proc.returncode != 0:
