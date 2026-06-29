@@ -12,11 +12,13 @@ import json
 import logging
 import subprocess
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import RELOCATION_KEYWORDS, MIN_SCORE_TO_INCLUDE, KNOWN_RELOCATORS
 
 logger = logging.getLogger(__name__)
 
-BATCH_SIZE = 80  # jobs per subprocess — well under 128k limit
+BATCH_SIZE = 40   # jobs per subprocess — small batches run in parallel
+MAX_PARALLEL = 7  # max concurrent subprocesses
 
 # Title must contain at least one of these to be worth scoring
 TITLE_MUST_INCLUDE = {
@@ -182,8 +184,9 @@ def _score_batch(batch: list[dict]) -> list[dict]:
 
 def enrich_jobs(jobs: list[dict]) -> list[dict]:
     """
-    Score all jobs in BATCH_SIZE subprocess chunks to avoid Azure token limit.
-    Returns list sorted by score descending.
+    Score all jobs using parallel subprocesses (batch size 40, up to 7 concurrent).
+    Each subprocess gets a fresh API session — no 128k token limit accumulation.
+    Wall-clock time = time of the slowest single batch (~3 min) instead of sum.
     """
     # Pre-filter junk titles
     relevant = [j for j in jobs if is_relevant_title(j)]
@@ -191,21 +194,30 @@ def enrich_jobs(jobs: list[dict]) -> list[dict]:
     if skipped:
         logger.info(f"Pre-filter: skipped {skipped} irrelevant, scoring {len(relevant)}/{len(jobs)}")
 
-    # Split into batches and score each in a fresh subprocess
-    enriched = []
     batches = [relevant[i:i+BATCH_SIZE] for i in range(0, len(relevant), BATCH_SIZE)]
-    logger.info(f"Scoring {len(relevant)} jobs in {len(batches)} batches of {BATCH_SIZE}")
+    logger.info(f"Scoring {len(relevant)} jobs in {len(batches)} parallel batches of {BATCH_SIZE}")
 
-    for batch_num, batch in enumerate(batches, 1):
-        logger.info(f"Batch {batch_num}/{len(batches)} — {len(batch)} jobs")
-        results = _score_batch(batch)
-        for r in results:
-            enriched.append({
-                **r,
-                "relocation":      detect_relocation(r),
-                "known_relocator": detect_known_relocator(r),
-            })
-        logger.info(f"Batch {batch_num} done: {len(results)} passed threshold")
+    enriched = []
+
+    # Launch all batches concurrently, cap at MAX_PARALLEL simultaneous processes
+    with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as executor:
+        future_to_batch = {
+            executor.submit(_score_batch, batch): (i + 1, len(batch))
+            for i, batch in enumerate(batches)
+        }
+        for future in as_completed(future_to_batch):
+            batch_num, batch_size = future_to_batch[future]
+            try:
+                results = future.result()
+                for r in results:
+                    enriched.append({
+                        **r,
+                        "relocation":      detect_relocation(r),
+                        "known_relocator": detect_known_relocator(r),
+                    })
+                logger.info(f"Batch {batch_num} done: {len(results)}/{batch_size} passed threshold")
+            except Exception as e:
+                logger.error(f"Batch {batch_num} failed: {e}")
 
     enriched.sort(key=lambda j: j["score"], reverse=True)
     logger.info(f"Scoring done: {len(enriched)}/{len(jobs)} passed {MIN_SCORE_TO_INCLUDE}% threshold")
