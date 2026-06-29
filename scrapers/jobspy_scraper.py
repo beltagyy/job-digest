@@ -1,42 +1,26 @@
 # scrapers/jobspy_scraper.py
 """
 Scrapes LinkedIn and Indeed using the JobSpy library.
-Searches broadly by job title across all configured locations.
-Company filtering/badging happens downstream in the scorer.
+Parallelises at the (term × city) level using ThreadPoolExecutor —
+each query runs in its own thread, all cities fire simultaneously.
 
-Tiers:
-  Tier 1 (DE, NL, IE, CH, BE): 2 cities × all terms
-  Tier 2 (CZ, PL, AT, ES, EE): 1 city × all terms
-  Tier 3 (HU, HR, BG):         1 city × top 5 terms only
+LinkedIn rate-limits per IP but doesn't block parallel threads from the same
+machine as long as we stay under ~10 concurrent connections.
 """
 import hashlib
 import logging
-import signal
-from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from jobspy import scrape_jobs
 from config import SEARCH_TERMS, SEARCH_LOCATIONS
 
-
-@contextmanager
-def timeout(seconds):
-    """Context manager that raises TimeoutError after `seconds`."""
-    def _handler(signum, frame):
-        raise TimeoutError(f"Query timed out after {seconds}s")
-    old = signal.signal(signal.SIGALRM, _handler)
-    signal.alarm(seconds)
-    try:
-        yield
-    finally:
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, old)
-
 logger = logging.getLogger(__name__)
 
-TIER_1 = {"germany", "netherlands", "ireland", "switzerland", "belgium"}
-TIER_3 = {"hungary", "croatia", "bulgaria"}
-# Tier 1 = 3 cities × all terms
-# Tier 2 = 1 city × all terms
-# Tier 3 = 1 city × all terms (no term restriction)
+# Max concurrent scrape threads — stay low enough LinkedIn doesn't throttle
+MAX_SCRAPE_WORKERS = 6
+
+TIER_1 = {"germany", "netherlands", "ireland"}
+# Tier 1: 3 cities × all terms
+# Tier 2/3: 1 city × all terms
 
 
 def _make_id(site: str, url: str) -> str:
@@ -60,51 +44,77 @@ def _normalize(row: dict, country_code: str, country_display: str) -> dict:
     }
 
 
+def _scrape_one(term: str, city: str, country_code: str,
+                country_display: str, max_per_query: int) -> list[dict]:
+    """Run a single (term × city) query. Returns list of normalized jobs."""
+    try:
+        df = scrape_jobs(
+            site_name=["linkedin", "indeed"],
+            search_term=term,
+            location=city,
+            results_wanted=max_per_query,
+            hours_old=48,
+            country_indeed=country_code,
+            linkedin_fetch_description=False,
+        )
+        if df is None or df.empty:
+            return []
+        results = []
+        for _, row in df.iterrows():
+            url = str(row.get("job_url", ""))
+            if url:
+                results.append(_normalize(row.to_dict(), country_code, country_display))
+        return results
+    except Exception as e:
+        logger.warning(f"JobSpy error for '{term}' in {city}: {e}")
+        return []
+
+
 def fetch_jobs(max_per_query: int = 20) -> list[dict]:
     """
-    Scrape jobs broadly across all locations and terms.
+    Build the full list of (term, city, country) queries then fire them all
+    in parallel via a thread pool. Deduplicates by URL across all results.
     Returns deduplicated list of normalized job dicts.
     """
+    # Build query list
+    queries = []
+    for country_code, country_display, cities in SEARCH_LOCATIONS:
+        city_limit = 3 if country_code in TIER_1 else 1
+        for term in SEARCH_TERMS:
+            for city in cities[:city_limit]:
+                queries.append((term, city, country_code, country_display))
+
+    total = len(queries)
+    logger.info(f"Scraping {total} queries across {len(SEARCH_LOCATIONS)} countries "
+                f"({MAX_SCRAPE_WORKERS} parallel workers)")
+
+    # Execute in parallel
     seen_urls: set[str] = set()
     all_jobs: list[dict] = []
+    completed = 0
 
-    for country_code, country_display, cities in SEARCH_LOCATIONS:
-        if country_code in TIER_1:
-            city_limit = 3        # 3 cities × all terms
-            terms = SEARCH_TERMS
-        else:
-            city_limit = 1        # 1 city × all terms (Tier 2 and Tier 3)
-            terms = SEARCH_TERMS
-
-        for term in terms:
-            for city in cities[:city_limit]:
-                try:
-                    logger.info(f"Scraping: '{term}' in {city} ({country_code})")
-                    with timeout(90):  # 90s max per query — prevents silent hangs
-                      df = scrape_jobs(
-                        site_name=["linkedin", "indeed"],
-                        search_term=term,
-                        location=city,
-                        results_wanted=max_per_query,
-                        hours_old=48,   # matches 2-day cron cadence exactly
-                        country_indeed=country_code,
-                        linkedin_fetch_description=False,  # disabled — causes silent hangs; Indeed provides full descriptions
-                    )
-                    if df is None or df.empty:
-                        continue
-                    for _, row in df.iterrows():
-                        url = str(row.get("job_url", ""))
-                        if url and url not in seen_urls:
-                            seen_urls.add(url)
-                            all_jobs.append(
-                                _normalize(row.to_dict(), country_code, country_display)
-                            )
-                except TimeoutError as e:
-                    logger.warning(f"Query timed out for '{term}' in {city} — skipping")
-                    continue
-                except Exception as e:
-                    logger.warning(f"JobSpy error for '{term}' in {city}: {e}")
-                    continue
+    with ThreadPoolExecutor(max_workers=MAX_SCRAPE_WORKERS) as executor:
+        future_to_query = {
+            executor.submit(_scrape_one, term, city, cc, cd, max_per_query): (term, city)
+            for term, city, cc, cd in queries
+        }
+        for future in as_completed(future_to_query):
+            term, city = future_to_query[future]
+            completed += 1
+            try:
+                results = future.result()
+                new = 0
+                for job in results:
+                    if job["url"] and job["url"] not in seen_urls:
+                        seen_urls.add(job["url"])
+                        all_jobs.append(job)
+                        new += 1
+                if new:
+                    logger.info(f"[{completed}/{total}] '{term}' in {city} → {new} new jobs")
+                else:
+                    logger.debug(f"[{completed}/{total}] '{term}' in {city} → 0 new")
+            except Exception as e:
+                logger.warning(f"[{completed}/{total}] '{term}' in {city} failed: {e}")
 
     logger.info(f"JobSpy fetched {len(all_jobs)} unique jobs total")
     return all_jobs
