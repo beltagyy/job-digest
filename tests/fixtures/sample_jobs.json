@@ -1,0 +1,41 @@
+[
+  {
+    "id": "abc123",
+    "title": "Senior Cloud Security Engineer",
+    "company": "Deutsche Bank",
+    "location": "Frankfurt, Germany",
+    "country_code": "DE",
+    "country": "Germany",
+    "url": "https://linkedin.com/jobs/view/abc123",
+    "source": "linkedin",
+    "description": "We are looking for a Senior Cloud Security Engineer with expertise in AWS, Kubernetes EKS, Falco, Wiz CNAPP, and Terraform. DevSecOps background required. Relocation assistance available for international candidates.",
+    "date_posted": "2026-06-20",
+    "is_remote": false
+  },
+  {
+    "id": "def456",
+    "title": "Java Spring Boot Developer",
+    "company": "Some Startup",
+    "location": "Amsterdam, Netherlands",
+    "country_code": "NL",
+    "country": "Netherlands",
+    "url": "https://linkedin.com/jobs/view/def456",
+    "source": "linkedin",
+    "description": "Looking for a Java developer with Spring Boot experience. No cloud experience needed.",
+    "date_posted": "2026-06-19",
+    "is_remote": false
+  },
+  {
+    "id": "ghi789",
+    "title": "DevSecOps Engineer",
+    "company": "N26",
+    "location": "Berlin, Germany",
+    "country_code": "DE",
+    "country": "Germany",
+    "url": "https://n26.com/jobs/ghi789",
+    "source": "glassdoor",
+    "description": "Join our security team. Terraform, ArgoCD, AWS, security scanning in CI/CD pipelines. We help with relocation for non-EU candidates.",
+    "date_posted": "2026-06-21",
+    "is_remote": true
+  }
+]

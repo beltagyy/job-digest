@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  # ── Lint ────────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: flake8
+        run: |
+          pip install flake8
+          flake8 . --max-line-length=120 --exclude=.venv,__pycache__ || true
+      - name: black
+        run: |
+          pip install black
+          black --check --line-length 120 . || true
+
+  # ── Tests ───────────────────────────────────────────────────────────────────
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: pytest
+        run: |
+          pip install pytest pytest-mock pytest-cov
+          pytest tests/ -v \
+            --cov=matching \
+            --cov=storage \
+            --cov=email_digest \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=50
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  # ── Security ────────────────────────────────────────────────────────────────
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: bandit
+        run: |
+          pip install bandit
+          bandit -r . -x .venv,tests -ll || true
+
+      - name: pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt || true
+
+      - name: detect-secrets
+        run: |
+          pip install detect-secrets
+          detect-secrets scan \
+            --exclude-files ".venv/.*" \
+            --exclude-files ".git/.*" > /tmp/secrets.json || true
+          python3 scripts/check_secrets.py || true
+
+      - name: safety
+        run: |
+          pip install safety
+          safety check --full-report || true
+
+  # ── Semgrep ─────────────────────────────────────────────────────────────────
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep scan --config=auto . || true
