@@ -11,7 +11,7 @@ ds = OpenAI(
     base_url=os.environ['AZURE_AI_ENDPOINT'].rstrip('/') + '/openai/v1/'
 )
 kimi = OpenAI(
-    api_key='REDACTED_KEY',
+    api_key=os.environ['COMPARE_API_KEY'],
     base_url='https://job-enhance-resource.services.ai.azure.com/openai/v1/'
 )
 
