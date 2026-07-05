@@ -8,3 +8,7 @@ dist/
 .DS_Store
 digest_preview_*.html
 digest_run.log
+.playwright/
+digest_run.log
+digest_preview_*.html
+*.db
