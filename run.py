@@ -13,6 +13,7 @@ import os
 import sys
 import logging
 import argparse
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -23,7 +24,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("digest_run.log"),
+        RotatingFileHandler("digest_run.log", maxBytes=5_000_000, backupCount=3),
     ],
 )
 logger = logging.getLogger("run")
