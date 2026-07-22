@@ -1,14 +1,22 @@
-.env
-*.db
+# Python
 __pycache__/
 *.pyc
-.venv/
 *.egg-info/
 dist/
-.DS_Store
-digest_preview_*.html
-digest_run.log
-.playwright/
-digest_run.log
-digest_preview_*.html
+.venv/
+
+# Environment & Secrets
+.env
+
+# Databases
 *.db
+
+# Logs & Previews
+digest_run.log
+digest_preview_*.html
+
+# Playwright
+.playwright/
+
+# OS
+.DS_Store
