@@ -2,6 +2,8 @@
 
 > A personal AI-powered job search assistant that scrapes LinkedIn and Indeed every 2 days across 10 EU countries, scores each listing against your CV using an LLM, and emails you a curated digest with tailored cover letters — so you only see roles worth your time. Runs in **~5 minutes** end-to-end using fully parallel scraping and scoring.
 
+[![CI](https://github.com/beltagyy/job-digest/actions/workflows/ci.yml/badge.svg)](https://github.com/beltagyy/job-digest/actions/workflows/ci.yml)
+
 ---
 
 ## What It Does
